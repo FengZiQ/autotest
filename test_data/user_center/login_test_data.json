@@ -1,6 +1,6 @@
 [
         {
-            "case_name": "账号密码登录",
+            "case_name": "获取用户信息",
             "step_number": "1",
             "actions": {
                 "method": "POST",
@@ -34,7 +34,6 @@
             }
         },
         {
-            "case_name": "账号密码登录",
             "step_number": "2",
             "actions": {
                 "method": "GET",

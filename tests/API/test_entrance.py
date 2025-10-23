@@ -17,7 +17,7 @@ class TestExecute:
         # 执行测试用例
         http_client.execute_test_case(
             test_case_datas=test_data,
-            case_name=''
+            case_name=test_data[0].get('case_name')
         )
         assert http_client.assert_tool.FailedFlag
 
@@ -31,7 +31,7 @@ class TestExecute:
         # 执行测试用例
         http_client.execute_test_case(
             test_case_datas=test_data,
-            case_name=''
+            case_name=test_data[0].get('case_name')
         )
         assert http_client.assert_tool.FailedFlag
 
