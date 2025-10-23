@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  autotest:
+    build: .
+    container_name: automation-tests
+    volumes:
+      - ./reports:/app/reports
+      - ./tests_data:/app/tests_data
+    environment:
+      - PYTHONPATH=/app
+      - DISPLAY=:99
+
+  autotest-api:
+    build: .
+    container_name: automation-api-tests
+    command: ["python", "-m", "pytest", "tests/API/test_entrance.py", "-v"]
+    volumes:
+      - ./reports:/app/reports
+      - ./tests_data:/app/tests_data
+    environment:
+      - PYTHONPATH=/app
+      - DISPLAY=:99
+
+  autotest-ui:
+    build: .
+    container_name: automation-ui-tests
+    command: ["python", "-m", "pytest", "tests/UI/test_calculator_BZ.py", "-v"]
+    volumes:
+      - ./reports:/app/reports
+      - ./tests_data:/app/tests_data
+      - ./resources:/app/resources
+    environment:
+      - PYTHONPATH=/app
+      - DISPLAY=:99
+
+  autotest-all:
+    build: .
+    container_name: automation-all-tests
+    command: ["python", "-m", "pytest", "tests/", "-v"]
+    volumes:
+      - ./reports:/app/reports
+      - ./tests_data:/app/tests_data
+      - ./resources:/app/resources
+    environment:
+      - PYTHONPATH=/app
+      - DISPLAY=:99
