@@ -9,6 +9,11 @@ autotest/
 │   └── http_client.py —> 接口测试工具类  
 │   └── api_test_executor.py —> 接口测试执行器  
 ├── platform/ —> 测试平台  
+│   ├── mock/  —>mock接口返回脚本目录
+│   ├── static/  —> 测试平台静态文件css与js存放目录
+│   ├── templates/  —> 测试平台html页面存放目录
+│   ├── routes.py/  —> 测试平台路由文件  
+│   └── app.py —> 测试平台启动入口  
 ├── reports/ —> 报告日志目录  
 │   ├── logs/  —>日志目录  
 │   ├── screenshots/  —>测试失败后截图目录  
