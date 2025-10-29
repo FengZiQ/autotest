@@ -38,9 +38,12 @@ def log_record(timestamp):
 
     def custom_filter(record):
         allowed_names = {
-            'root', 'airtest.core.api',
-            'airtest.aircv.multiscale_template_matching', 'CalculatorPage',
-            'HTTPClient',
+            'root',
+            'airtest.core.api',
+            'airtest.aircv.multiscale_template_matching',
+            'windows_app_test',
+            'http_client',
+            'api_test_executor',
         }
         if record.name not in allowed_names:
             return False

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
-from core.calculator_page import CalculatorPage
+from core.windows_app_test import WinAppTest
 
 
 class TestCalculator:
@@ -13,7 +13,7 @@ class TestCalculator:
     @pytest.mark.usefixtures("bz_calculator")
     def test_addition(self, bz_calculator, param, expected):
         """测试加法运算"""
-        calc = CalculatorPage(bz_calculator)
+        calc = WinAppTest(bz_calculator)
 
         # 方法1: 使用图像识别操作
         calc.click_button(param[0], threshold=0.9)
@@ -31,7 +31,7 @@ class TestCalculator:
     @pytest.mark.usefixtures("bz_calculator")
     def test_subtract(self, bz_calculator, param, expected):
         """测试加法运算"""
-        calc = CalculatorPage(bz_calculator)
+        calc = WinAppTest(bz_calculator)
 
         # 方法1: 使用图像识别操作
         calc.click_button(param[0], threshold=0.9)

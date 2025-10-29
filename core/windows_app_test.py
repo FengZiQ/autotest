@@ -5,15 +5,15 @@ from config.airtest_config import MySettings
 from utils.path_util import get_path
 from config.app_config import config_data
 
-logger = logging.getLogger('CalculatorPage')
+logger = logging.getLogger('windows_app_test')
 
 
-class CalculatorPage:
+class WinAppTest:
     def __init__(self, app_device):
         MySettings()
         self.dev = app_device
-        self.img_BZ_path = get_path('resources', 'image', 'BZ')
-        self.img_BZ_assert_path = get_path('resources', 'image', 'BZ_assert')
+        self.img_BZ_path = get_path('resources', 'image', 'calculator_button')
+        self.img_BZ_assert_path = get_path('resources', 'image', 'calculator_assert')
 
     def click_button(self, button_name, retry=3, interval=1, target_pos=5, threshold=0.8, rgb=False):
         """带重试机制的图像识别点击"""

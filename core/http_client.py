@@ -4,6 +4,9 @@ import requests
 import logging
 
 
+logger = logging.getLogger('http_client')
+
+
 def _replace_placeholders(text, context):
     """替换文本中的占位符 ${key}"""
     if not context or not text:
@@ -52,11 +55,11 @@ class HTTPClient:
                 **kwargs
             )
             response.raise_for_status()  # 检查HTTP错误状态
-            # logging.info(f"{method} {url} - Status {response.status_code}")
+            # logger.info(f"{method} {url} - Status {response.status_code}")
             return response
 
         except requests.exceptions.RequestException as e:
-            logging.error(f"Request failed: {method} {url} - Error: {str(e)}")
+            logger.error(f"Request failed: {method} {url} - Error: {str(e)}")
             return None
 
     def get(self, url_path, params=None, **kwargs):
@@ -131,24 +134,24 @@ class APIAssert:
         assert_result = None
         try:
             actuality = response.status_code
-            logging.info(f'期望结果为:{expectation}')
-            logging.info(f'实际结果为:{actuality}')
+            logger.info(f'期望结果为:{expectation}')
+            logger.info(f'实际结果为:{actuality}')
             if actuality == expectation:
-                # logging.info('通过')
-                logging.info('<span style="color: green; font-weight: bold;">通过</span>')
+                # logger.info('通过')
+                logger.info('<span style="color: green; font-weight: bold;">通过</span>')
                 self.FailedFlag = True
             else:
-                # logging.info('失败')
-                logging.info('<span style="color: red; font-weight: bold;">失败</span>')
+                # logger.info('失败')
+                logger.info('<span style="color: red; font-weight: bold;">失败</span>')
                 self.FailedFlag = False
             if self.FailedFlag:
                 assert_result = True
             else:
                 assert_result = False
         except Exception as e:
-            logging.error(f'期望结果为:{expectation}；异常信息为：{e}')
-            # logging.info('失败')
-            logging.info('<span style="color: red; font-weight: bold;">失败</span>')
+            logger.error(f'期望结果为:{expectation}；异常信息为：{e}')
+            # logger.info('失败')
+            logger.info('<span style="color: red; font-weight: bold;">失败</span>')
             self.FailedFlag = False
         finally:
             return assert_result
@@ -158,24 +161,24 @@ class APIAssert:
         assert_result = None
         try:
             actuality = response.text
-            logging.info(f'期望结果为:{expectation}')
-            logging.info(f'实际结果为:{actuality}')
+            logger.info(f'期望结果为:{expectation}')
+            logger.info(f'实际结果为:{actuality}')
             if expectation in actuality:
-                # logging.info('通过')
-                logging.info('<span style="color: green; font-weight: bold;">通过</span>')
+                # logger.info('通过')
+                logger.info('<span style="color: green; font-weight: bold;">通过</span>')
                 self.FailedFlag = True
             else:
-                # logging.info('失败')
-                logging.info('<span style="color: red; font-weight: bold;">失败</span>')
+                # logger.info('失败')
+                logger.info('<span style="color: red; font-weight: bold;">失败</span>')
                 self.FailedFlag = False
             if self.FailedFlag:
                 assert_result = True
             else:
                 assert_result = False
         except Exception as e:
-            logging.error(f'期望结果为:{expectation}；异常信息为：{e}')
-            # logging.info('失败')
-            logging.info('<span style="color: red; font-weight: bold;">失败</span>')
+            logger.error(f'期望结果为:{expectation}；异常信息为：{e}')
+            # logger.info('失败')
+            logger.info('<span style="color: red; font-weight: bold;">失败</span>')
             self.FailedFlag = False
         finally:
             return assert_result
@@ -185,17 +188,17 @@ class APIAssert:
         assert_result = None
         try:
             actuality = response.json()
-            logging.info(f'期望结果为:{expectation}')
-            logging.info(f'实际结果为:{actuality}')
+            logger.info(f'期望结果为:{expectation}')
+            logger.info(f'实际结果为:{actuality}')
             match, differences = compare_structure(actuality, expectation)
             if match:
-                # logging.info('通过')
-                logging.info('<span style="color: green; font-weight: bold;">通过</span>')
+                # logger.info('通过')
+                logger.info('<span style="color: green; font-weight: bold;">通过</span>')
                 self.FailedFlag = True
             else:
-                # logging.info('失败')
-                logging.info('<span style="color: red; font-weight: bold;">失败</span>')
-                logging.info(f'{differences}')
+                # logger.info('失败')
+                logger.info('<span style="color: red; font-weight: bold;">失败</span>')
+                logger.info(f'{differences}')
                 self.FailedFlag = False
 
             if self.FailedFlag:
@@ -203,9 +206,9 @@ class APIAssert:
             else:
                 assert_result = False
         except Exception as e:
-            logging.error(f'期望结果为:{expectation}；异常信息为：{e}')
-            # logging.info('失败')
-            logging.info('<span style="color: red; font-weight: bold;">失败</span>')
+            logger.error(f'期望结果为:{expectation}；异常信息为：{e}')
+            # logger.info('失败')
+            logger.info('<span style="color: red; font-weight: bold;">失败</span>')
             self.FailedFlag = False
         finally:
             return assert_result
@@ -215,24 +218,24 @@ class APIAssert:
         assert_result = None
         try:
             actuality = response.json()
-            logging.info(f'期望结果为:{expectation}')
-            logging.info(f'实际结果为:{actuality}')
+            logger.info(f'期望结果为:{expectation}')
+            logger.info(f'实际结果为:{actuality}')
             if expectation.items() <= actuality.items():
-                # logging.info('通过')
-                logging.info('<span style="color: green; font-weight: bold;">通过</span>')
+                # logger.info('通过')
+                logger.info('<span style="color: green; font-weight: bold;">通过</span>')
                 self.FailedFlag = True
             else:
-                # logging.info('失败')
-                logging.info('<span style="color: red; font-weight: bold;">失败</span>')
+                # logger.info('失败')
+                logger.info('<span style="color: red; font-weight: bold;">失败</span>')
 
             if self.FailedFlag:
                 assert_result = True
             else:
                 assert_result = False
         except Exception as e:
-            logging.error(f'期望结果为:{expectation}；异常信息为：{e}')
-            # logging.info('失败')
-            logging.info('<span style="color: red; font-weight: bold;">失败</span>')
+            logger.error(f'期望结果为:{expectation}；异常信息为：{e}')
+            # logger.info('失败')
+            logger.info('<span style="color: red; font-weight: bold;">失败</span>')
             self.FailedFlag = False
         finally:
             return assert_result

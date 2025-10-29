@@ -25,7 +25,7 @@ services:
   autotest-ui:
     build: .
     container_name: automation-ui-tests
-    command: ["python", "-m", "pytest", "tests/UI/test_calculator_BZ.py", "-v"]
+    command: ["python", "-m", "pytest", "tests/UI/test_calculator_demo.py", "-v"]
     volumes:
       - ./reports:/app/reports
       - ./tests_data:/app/tests_data

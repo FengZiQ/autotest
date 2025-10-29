@@ -5,28 +5,31 @@ autotest/
 │   └── app_config.py —> 测试应用相关配置  
 │   └── api_test_plan.py —> 接口测试计划  
 ├── core/ —> 测试工具库  
-│   └── calculator_page.py —> 以Windows计算器为例写的操作工具类  
+│   └── windows_app_test.py —> Windows应用测试工具类  
 │   └── http_client.py —> 接口测试工具类  
 │   └── api_test_executor.py —> 接口测试执行器  
+├── platform/ —> 测试平台  
 ├── reports/ —> 报告日志目录  
 │   ├── logs/  —>日志目录  
 │   ├── screenshots/  —>测试失败后截图目录  
 ├── resources/ —> 资源库  
 │   ├── image/ —> 存放应用不同模块操作按钮的截图目录  
-│   │    ├── BZ/ —> BZ模块操作按钮的截图目录  
-│   │    ├── BZ_assert/ —> BZ模块断言图片截图目录  
+│   │    ├── calculator_button/ —> windows系统计算器按钮截图目录  
+│   │    ├── calculator_assert/ —> 计算器测试断言截图目录  
 ├── tests_data/ —> 测试数据  
 ├── tests/ —> 测试入口  
 │   ├── API/  —>API测试入口  
 │       └── test_entrance.py —> API测试入口  
 │   ├── UI/  —>UI测试入口  
-│       └── test_calculator_BZ.py —> 测试计算器的一个示例  
+│       └── test_calculator_demo.py —> 测试计算器的一个示例  
 ├── utils/ —> 工具函数  
 │   └── file_utils.py  
 │   └── kill_process.py  
 │   └── logger.py  
 │   └── path_util.py  
 └── conftest.py  
+└── Dockerfile —> 项目容器  
+└── docker-compose.yml —> 项目容器配置  
 └── pytest.ini  
 └── requirements.txt  
 

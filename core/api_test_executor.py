@@ -3,6 +3,8 @@ import re
 import logging
 from core.http_client import HTTPClient, APIAssert
 
+logger = logging.getLogger('api_test_executor')
+
 
 class TestCaseExecutor:
     def __init__(self, base_url='', timeout=10):
@@ -64,12 +66,12 @@ class TestCaseExecutor:
 
                 if value is not None:
                     self.context[var_name] = value
-                    logging.info(f"提取变量成功: {var_name} = {value}")
+                    logger.info(f"提取变量成功: {var_name} = {value}")
                 else:
-                    logging.warning(f"警告: 无法提取变量 {var_name}，路径: {json_path}")
+                    logger.warning(f"警告: 无法提取变量 {var_name}，路径: {json_path}")
 
         except Exception as e:
-            logging.warning(f"提取数据时发生错误: {str(e)}")
+            logger.warning(f"提取数据时发生错误: {str(e)}")
 
     def send_requests(self, action):
         """
@@ -90,9 +92,9 @@ class TestCaseExecutor:
         params = self.replace_variables(params)
 
         if data:
-            logging.info(f"请求头headers为{headers}，请求数据为{data}")
+            logger.info(f"请求头headers为{headers}，请求数据为{data}")
         if params:
-            logging.info(f"请求头headers为{headers}，请求数据为{params}")
+            logger.info(f"请求头headers为{headers}，请求数据为{params}")
 
         # 发送请求
         try:
@@ -105,11 +107,11 @@ class TestCaseExecutor:
                 else:
                     response = self.http_client.post(url_path, data=data, headers=headers)
             else:
-                logging.warning(f"不支持的HTTP方法: {method}")
+                logger.warning(f"不支持的HTTP方法: {method}")
                 return None
 
             if response:
-                logging.info(f"响应内容: {response.text}")
+                logger.info(f"响应内容: {response.text}")
 
                 # 提取数据
                 if extract_rules:
@@ -118,7 +120,7 @@ class TestCaseExecutor:
             return response
 
         except Exception as e:
-            logging.warning(f"请求执行失败: {str(e)}")
+            logger.warning(f"请求执行失败: {str(e)}")
             return None
 
     def perform_assertion(self, expected_results):
@@ -129,14 +131,14 @@ class TestCaseExecutor:
         """
         assert_flag = None
         if not self.response:
-            logging.warning("无法执行断言: 响应对象为空")
+            logger.warning("无法执行断言: 响应对象为空")
             return
-        logging.debug(f'expected_results:{expected_results}')
+        logger.debug(f'expected_results:{expected_results}')
         assert_form = expected_results.get('assert_form')
         assert_data = expected_results.get('assert_data')
 
-        logging.info(f"断言方式: {assert_form}")
-        logging.info(f"期望结果: {assert_data}")
+        logger.info(f"断言方式: {assert_form}")
+        logger.info(f"期望结果: {assert_data}")
 
         # 根据断言形式选择对应的断言方法
         if assert_form == 'response_json_structure':
@@ -144,21 +146,21 @@ class TestCaseExecutor:
                 self.assert_tool.response_json_structure(self.response, assert_data)
                 # self.assert_tool.FailedFlag = False
             else:
-                logging.warning(f'{assert_data}不是json！要求为dict类型。')
+                logger.warning(f'{assert_data}不是json！要求为dict类型。')
                 self.assert_tool.FailedFlag = False
         elif assert_form == 'response_text_contents':
             if isinstance(assert_data, str):
                 self.assert_tool.response_text_contents(self.response, assert_data)
                 # self.assert_tool.FailedFlag = False
             else:
-                logging.warning(f'{assert_data}不是str！要求为str类型。')
+                logger.warning(f'{assert_data}不是str！要求为str类型。')
                 self.assert_tool.FailedFlag = False
         elif assert_form == 'response_json_contents':
             if isinstance(assert_data, dict):
                 self.assert_tool.response_json_contents(self.response, assert_data)
                 # self.assert_tool.FailedFlag = False
             else:
-                logging.warning(f'{assert_data}不是json！要求为dict类型。')
+                logger.warning(f'{assert_data}不是json！要求为dict类型。')
                 self.assert_tool.FailedFlag = False
         elif assert_form == 'databases_equal':
             pass
@@ -169,7 +171,7 @@ class TestCaseExecutor:
         elif assert_form == 'redis_contents':
             pass
         else:
-            logging.info(f"不支持的断言形式: {assert_form}")
+            logger.info(f"不支持的断言形式: {assert_form}")
 
         return assert_flag
 
@@ -179,12 +181,12 @@ class TestCaseExecutor:
         :param test_case_datas: 测试用例数据
         :param case_name: 测试用例名称
         """
-        logging.info(f"{'=' * 50}")
-        logging.info(f"开始执行测试用例: {case_name}")
-        logging.info(f"{'=' * 50}")
+        logger.info(f"{'=' * 50}")
+        logger.info(f"开始执行测试用例: {case_name}")
+        logger.info(f"{'=' * 50}")
 
         if not isinstance(test_case_datas, list):
-            logging.warning(f'收集的测试用例数据不是list类型，测试用例{case_name}执行结束！')
+            logger.warning(f'收集的测试用例数据不是list类型，测试用例{case_name}执行结束！')
             self.assert_tool.FailedFlag = False
 
         # 重置上下文（可选，根据需求决定是否在用例间重置）
@@ -195,25 +197,25 @@ class TestCaseExecutor:
             actions = tcd.get('actions', [])
             expected_results = tcd.get('expected_results', {})
 
-            logging.info(f"--- 执行步骤 {tcd.get('step_number')} ---")
+            logger.info(f"--- 执行步骤 {tcd.get('step_number')} ---")
 
             # 发送请求
             response = self.send_requests(actions)
 
             # 如果某个步骤失败，可以选择终止执行
             if not response:
-                logging.warning(f"步骤 {tcd.get('step_number')} 执行失败，终止测试")
+                logger.warning(f"步骤 {tcd.get('step_number')} 执行失败，终止测试")
                 self.assert_tool.FailedFlag = False
                 break
 
             if response:
-                logging.info(f"--- 步骤 {tcd.get('step_number')} 执行断言 ---")
+                logger.info(f"--- 步骤 {tcd.get('step_number')} 执行断言 ---")
                 self.perform_assertion(expected_results)
             else:
-                logging.warning(f"步骤 {tcd.get('step_number')} 无法断言，请检查断言方式与响应结果是否匹配！")
+                logger.warning(f"步骤 {tcd.get('step_number')} 无法断言，请检查断言方式与响应结果是否匹配！")
                 self.assert_tool.FailedFlag = False
 
-        logging.info(f"测试用例执行完成: {case_name}")
+        logger.info(f"测试用例执行完成: {case_name}")
 
     def close(self):
         """关闭HTTP客户端"""
