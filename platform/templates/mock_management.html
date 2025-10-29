@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mock-page">
+    <h2>Mock服务管理</h2>
+
+    <div class="mock-info">
+        <h3>可用Mock接口</h3>
+        <div class="mock-list">
+            <div class="mock-item">
+                <h4>用户相关接口</h4>
+                <ul>
+                    <li>GET /mock/api/users - 获取用户列表</li>
+                    <li>GET /mock/api/users/1 - 获取用户详情</li>
+                    <li>POST /mock/api/users - 创建用户</li>
+                </ul>
+            </div>
+            <div class="mock-item">
+                <h4>计算器接口</h4>
+                <ul>
+                    <li>POST /mock/api/calculator/add - 加法运算</li>
+                    <li>POST /mock/api/calculator/subtract - 减法运算</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="mock-url">
+            <p><strong>Mock服务地址:</strong> http://localhost:5000/mock/api/</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

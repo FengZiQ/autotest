@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="management-page">
+    <h2>测试用例管理</h2>
+
+    <div class="form-section">
+        <h3>新增测试用例</h3>
+        <form id="testCaseForm">
+            <div class="form-group">
+                <label for="caseName">用例名称:</label>
+                <input type="text" id="caseName" name="caseName" required>
+            </div>
+            <div class="form-group">
+                <label for="caseData">用例数据 (JSON格式):</label>
+                <textarea id="caseData" name="caseData" rows="15" required></textarea>
+                <div class="form-hint">请输入有效的JSON格式数据</div>
+            </div>
+            <div class="form-group">
+                <label for="caseData">用例数据 (JSON格式):</label>
+                <textarea id="0" name="caseData" rows="15" required placeholder='{"key": "value"}'></textarea>
+                <div class="form-hint">请输入有效的JSON格式数据</div>
+                <button type="button" id="formatJSON" class="btn btn-small">格式化JSON</button>
+            </div>
+            <button type="submit" class="btn btn-primary">保存用例</button>
+        </form>
+    </div>
+
+    <div class="cases-section">
+        <h3>现有测试用例</h3>
+        <div class="cases-list">
+            {% for case in cases %}
+            <div class="case-item">
+                <span class="case-name">{{ case }}</span>
+                <button class="btn btn-small" onclick="loadCase('{{ case }}')">编辑</button>
+            </div>
+            {% else %}
+            <p class="no-data">暂无测试用例</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('testCaseForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const caseName = document.getElementById('caseName').value;
+    const caseData = document.getElementById('caseData').value;
+
+    fetch('/api/test-cases', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            case_name: caseName,
+            case_data: caseData
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => {
+        alert('保存失败: ' + error);
+    });
+});
+
+function loadCase(caseName) {
+    // 这里可以实现加载已有用例进行编辑的功能
+    alert('编辑功能: ' + caseName);
+}
+</script>
+{% endblock %}

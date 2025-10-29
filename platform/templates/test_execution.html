@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="execution-page">
+    <h2>测试执行</h2>
+
+    <div class="execution-form">
+        <div class="form-group">
+            <label for="testMark">选择测试范围:</label>
+            <select id="testMark">
+                <option value="all">全部执行</option>
+                <option value="smoke">冒烟测试</option>
+                <option value="regression">回归测试</option>
+                <option value="api">接口测试</option>
+            </select>
+        </div>
+
+        <button id="executeBtn" class="btn btn-primary">开始执行测试</button>
+    </div>
+
+    <div class="execution-log">
+        <h3>执行日志</h3>
+        <div id="logOutput" class="log-output">
+            <!-- 执行日志将在这里显示 -->
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('executeBtn').addEventListener('click', function() {
+    const mark = document.getElementById('testMark').value;
+    const logOutput = document.getElementById('logOutput');
+
+    logOutput.innerHTML = '开始执行测试...<br>';
+
+    fetch('/api/execute-tests', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            mark: mark
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        logOutput.innerHTML += data.message + '<br>';
+        if (data.success) {
+            logOutput.innerHTML += '测试正在后台执行，请查看控制台输出或报告文件。<br>';
+        }
+    })
+    .catch(error => {
+        logOutput.innerHTML += '执行失败: ' + error + '<br>';
+    });
+});
+</script>
+{% endblock %}
