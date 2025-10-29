@@ -9,5 +9,5 @@ def get_path(*subpaths):
 
 
 if __name__ == '__main__':
-    screenshots_dir = get_path('test_data', 'user_center', 'login_test_data.json')
+    screenshots_dir = get_path('tests_data', 'user_center', 'login_test_data.json')
     print(screenshots_dir)
