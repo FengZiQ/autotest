@@ -24,8 +24,10 @@ autotest/
 ├── tests_data/ —> 测试数据  
 ├── tests/ —> 测试入口  
 │   ├── API/  —>API测试入口  
+│       └── conftest.py —> API测试相关的夹具配置  
 │       └── test_entrance.py —> API测试入口  
 │   ├── UI/  —>UI测试入口  
+│       └── conftest.py —> UI测试相关的夹具配置  
 │       └── test_calculator_demo.py —> 测试计算器的一个示例  
 ├── utils/ —> 工具函数  
 │   └── file_utils.py  
