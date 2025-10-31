@@ -49,7 +49,7 @@
             },
             "expected_results": {
                 "assert_form": "response_text_contents",
-                "assert_data": "\"userId\":\"1076249187848705\""
+                "assert_data": "\"userId\": \"1076249187848705\""
             }
         }
 ]
