@@ -8,71 +8,381 @@
         <h3>新增测试用例</h3>
         <form id="testCaseForm">
             <div class="form-group">
+                <label for="testPlan">测试计划:</label>
+                <select id="testPlan" name="testPlan" required>
+                    <option value="">请选择测试计划</option>
+                    <option value="smoke">冒烟测试 (smoke)</option>
+                    <option value="order">订单测试 (order)</option>
+                    <option value="full_functional">全功能测试 (full_functional)</option>
+                    <option value="user_center">用户中心测试 (user_center)</option>
+                    <option value="other">其他</option>
+                </select>
+                <div class="form-hint">选择测试计划分类</div>
+            </div>
+
+            <div class="form-group">
                 <label for="caseName">用例名称:</label>
-                <input type="text" id="caseName" name="caseName" required>
+                <input type="text" id="caseName" name="caseName" required placeholder="例如: login_success">
+                <div class="form-hint">不需要包含.json后缀</div>
             </div>
+
             <div class="form-group">
                 <label for="caseData">用例数据 (JSON格式):</label>
-                <textarea id="caseData" name="caseData" rows="15" required></textarea>
-                <div class="form-hint">请输入有效的JSON格式数据</div>
-            </div>
-            <div class="form-group">
-                <label for="caseData">用例数据 (JSON格式):</label>
-                <textarea id="0" name="caseData" rows="15" required placeholder='{"key": "value"}'></textarea>
+                <textarea id="caseData" name="caseData" rows="15" required placeholder='{"key": "value"}'></textarea>
                 <div class="form-hint">请输入有效的JSON格式数据</div>
                 <button type="button" id="formatJSON" class="btn btn-small">格式化JSON</button>
             </div>
+
             <button type="submit" class="btn btn-primary">保存用例</button>
         </form>
     </div>
 
-    <div class="cases-section">
-        <h3>现有测试用例</h3>
-        <div class="cases-list">
-            {% for case in cases %}
-            <div class="case-item">
-                <span class="case-name">{{ case }}</span>
-                <button class="btn btn-small" onclick="loadCase('{{ case }}')">编辑</button>
+    <div class="test-plans-section">
+        <h3>测试计划与用例</h3>
+
+        {% if test_plans %}
+            <div class="test-plans-container">
+                {% for plan_name, cases in test_plans.items() %}
+                <div class="test-plan-card">
+                    <div class="test-plan-header">
+                        <h4>{{ plan_name }} ({{ cases|length }} 个用例)</h4>
+                        <button class="btn btn-small" onclick="togglePlan('{{ plan_name }}')">展开/收起</button>
+                    </div>
+
+                    <div class="cases-list" id="cases-{{ plan_name }}" style="display: none;">
+                        {% for case in cases %}
+                        <div class="case-item">
+                            <span class="case-name">{{ case }}</span>
+                            <div class="case-actions">
+                                <button class="btn btn-small btn-edit" onclick="loadCase('{{ plan_name }}', '{{ case }}')">编辑</button>
+                                <button class="btn btn-small btn-danger" onclick="deleteCase('{{ plan_name }}', '{{ case }}')">删除</button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-            {% else %}
-            <p class="no-data">暂无测试用例</p>
-            {% endfor %}
-        </div>
+        {% else %}
+            <div class="no-data">
+                <p>暂无测试用例，请创建第一个测试用例</p>
+            </div>
+        {% endif %}
     </div>
 </div>
 
 <script>
-document.getElementById('testCaseForm').addEventListener('submit', function(e) {
-    e.preventDefault();
+// 初始化事件监听
+document.addEventListener('DOMContentLoaded', function() {
+    // 表单提交
+    document.getElementById('testCaseForm').addEventListener('submit', handleSubmit);
 
-    const caseName = document.getElementById('caseName').value;
-    const caseData = document.getElementById('caseData').value;
+    // JSON格式化
+    document.getElementById('formatJSON').addEventListener('click', formatJSON);
 
-    fetch('/api/test-cases', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            case_name: caseName,
-            case_data: caseData
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        alert(data.message);
-        if (data.success) {
-            location.reload();
-        }
-    })
-    .catch(error => {
-        alert('保存失败: ' + error);
-    });
+    // JSON实时验证
+    document.getElementById('caseData').addEventListener('input', validateJSON);
 });
 
-function loadCase(caseName) {
-    // 这里可以实现加载已有用例进行编辑的功能
-    alert('编辑功能: ' + caseName);
+// 处理表单提交
+async function handleSubmit(e) {
+    e.preventDefault();
+
+    const testPlan = document.getElementById('testPlan').value;
+    const caseName = document.getElementById('caseName').value.trim();
+    const caseData = document.getElementById('caseData').value.trim();
+
+    if (!testPlan) {
+        alert('请选择测试计划');
+        return;
+    }
+
+    if (!caseName) {
+        alert('请输入用例名称');
+        return;
+    }
+
+    if (!caseData) {
+        alert('请输入用例数据');
+        return;
+    }
+
+    // 验证JSON格式
+    if (!isValidJSON(caseData)) {
+        alert('用例数据必须是有效的JSON格式');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/test-cases', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                test_plan: testPlan,
+                case_name: caseName,
+                case_data: caseData
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('保存成功！');
+            // 清空表单
+            document.getElementById('testCaseForm').reset();
+            clearValidation();
+            // 刷新页面
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            alert('保存失败: ' + data.message);
+        }
+    } catch (error) {
+        console.error('保存失败:', error);
+        alert('保存失败，请检查网络连接');
+    }
+}
+
+// JSON验证函数
+function isValidJSON(str) {
+    try {
+        JSON.parse(str);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+// 格式化JSON
+function formatJSON() {
+    const textarea = document.getElementById('caseData');
+    try {
+        const obj = JSON.parse(textarea.value);
+        textarea.value = JSON.stringify(obj, null, 4);
+        showValidationState('valid', 'JSON格式正确');
+    } catch (e) {
+        showValidationState('invalid', 'JSON格式错误，无法格式化');
+    }
+}
+
+// JSON实时验证
+function validateJSON(event) {
+    const textarea = event.target;
+    const value = textarea.value.trim();
+
+    if (value === '') {
+        clearValidation();
+        return;
+    }
+
+    if (isValidJSON(value)) {
+        showValidationState('valid', 'JSON格式正确');
+    } else {
+        showValidationState('invalid', 'JSON格式错误');
+    }
+}
+
+// 清除验证状态
+function clearValidation() {
+    const textarea = document.getElementById('caseData');
+    const hint = document.querySelector('.json-validation-hint');
+
+    if (textarea) {
+        textarea.classList.remove('valid', 'invalid');
+    }
+    if (hint) {
+        hint.remove();
+    }
+}
+
+// 显示验证状态
+function showValidationState(state, message) {
+    const textarea = document.getElementById('caseData');
+    let hint = document.querySelector('.json-validation-hint');
+
+    // 移除现有状态类
+    textarea.classList.remove('valid', 'invalid');
+    textarea.classList.add(state);
+
+    // 创建或更新提示信息
+    if (!hint) {
+        hint = document.createElement('div');
+        hint.className = 'json-validation-hint';
+        textarea.parentNode.appendChild(hint);
+    }
+
+    hint.textContent = message;
+    hint.className = `json-validation-hint ${state}`;
+}
+
+// 切换测试计划显示
+function togglePlan(planName) {
+    const casesList = document.getElementById(`cases-${planName}`);
+    if (casesList.style.display === 'none') {
+        casesList.style.display = 'block';
+    } else {
+        casesList.style.display = 'none';
+    }
+}
+
+// 加载用例进行编辑
+async function loadCase(testPlan, caseName) {
+    try {
+        // 移除.json后缀
+        const pureCaseName = caseName.replace('.json', '');
+
+        const response = await fetch(`/api/test-cases/${testPlan}/${pureCaseName}`);
+        const data = await response.json();
+
+        if (data.success) {
+            // 填充表单
+            document.getElementById('testPlan').value = testPlan;
+            document.getElementById('caseName').value = pureCaseName;
+            document.getElementById('caseData').value = data.data;
+
+            // 滚动到表单
+            document.querySelector('.form-section').scrollIntoView({
+                behavior: 'smooth'
+            });
+
+            // 更新按钮文本
+            document.querySelector('button[type="submit"]').textContent = '更新用例';
+
+            alert(`已加载用例: ${caseName}，请修改后点击"更新用例"保存`);
+        } else {
+            alert('加载失败: ' + data.message);
+        }
+    } catch (error) {
+        console.error('加载用例失败:', error);
+        alert('加载失败，请检查网络连接');
+    }
+}
+
+// 删除用例
+function deleteCase(testPlan, caseName) {
+    if (!confirm(`确定要删除用例 "${caseName}" 吗？此操作不可恢复。`)) {
+        return;
+    }
+    // 调用后端删除接口
+    fetch(`/api/test-cases/${testPlan}/${caseName}`, { method: 'DELETE' })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('删除成功');
+            location.reload();
+        } else {
+            alert('删除失败: ' + data.message);
+        }
+    });
 }
 </script>
+
+<style>
+.test-plans-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.test-plan-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.test-plan-header {
+    background: #f8f9fa;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.test-plan-header h4 {
+    margin: 0;
+    color: #495057;
+}
+
+.cases-list {
+    padding: 15px;
+    background: white;
+}
+
+.case-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.case-item:last-child {
+    border-bottom: none;
+}
+
+.case-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.case-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-edit {
+    background-color: #17a2b8;
+}
+
+.btn-edit:hover {
+    background-color: #138496;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+.no-data {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.json-validation-hint {
+    margin-top: 5px;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 3px;
+}
+
+.json-validation-hint.valid {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.json-validation-hint.invalid {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+textarea.valid {
+    border-color: #28a745;
+}
+
+textarea.invalid {
+    border-color: #dc3545;
+}
+</style>
 {% endblock %}

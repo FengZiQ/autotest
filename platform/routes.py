@@ -25,14 +25,33 @@ class TestPlatform:
                     cases.append(file.replace('.json', ''))
         return sorted(cases)
 
-    def save_test_case(self, case_name, case_data):
-        """保存测试用例"""
+    def get_test_plans(self):
+        """获取所有测试计划"""
+        test_plans = {}
+        if os.path.exists(self.tests_data_dir):
+            for item in os.listdir(self.tests_data_dir):
+                item_path = os.path.join(self.tests_data_dir, item)
+                if os.path.isdir(item_path):
+                    # 获取该测试计划下的所有JSON文件
+                    test_cases = []
+                    for file in os.listdir(item_path):
+                        if file.endswith('.json'):
+                            test_cases.append(file)
+                    test_plans[item] = sorted(test_cases)
+        return test_plans
+
+    def save_test_case(self, test_plan, case_name, case_data):
+        """保存测试用例到指定测试计划"""
         try:
             # 验证JSON格式
             json.loads(case_data)
 
+            # 确保测试计划目录存在
+            plan_dir = os.path.join(self.tests_data_dir, test_plan)
+            os.makedirs(plan_dir, exist_ok=True)
+
             # 保存文件
-            file_path = os.path.join(self.tests_data_dir, f"{case_name}.json")
+            file_path = os.path.join(plan_dir, f"{case_name}.json")
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(case_data)
             return True, "保存成功"
@@ -79,21 +98,51 @@ def index():
 
 @main_bp.route('/test-cases')
 def test_case_management():
-    cases = platform.get_test_cases()
-    return render_template('test_case_management.html', cases=cases)
+    test_plans = platform.get_test_plans()
+    return render_template('test_case_management.html', test_plans=test_plans)
 
 
 @main_bp.route('/api/test-cases', methods=['POST'])
 def save_test_case():
     data = request.json
+    test_plan = data.get('test_plan')
     case_name = data.get('case_name')
     case_data = data.get('case_data')
 
-    if not case_name or not case_data:
-        return jsonify({'success': False, 'message': '用例名称和数据不能为空'})
+    if not test_plan or not case_name or not case_data:
+        return jsonify({'success': False, 'message': '测试计划、用例名称和数据不能为空'})
 
-    success, message = platform.save_test_case(case_name, case_data)
+    success, message = platform.save_test_case(test_plan, case_name, case_data)
     return jsonify({'success': success, 'message': message})
+
+
+@main_bp.route('/api/test-cases/<test_plan>/<case_name>', methods=['GET'])
+def get_test_case(test_plan, case_name):
+    """获取测试用例内容"""
+    try:
+        file_path = os.path.join(platform.tests_data_dir, test_plan, f"{case_name}.json")
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            return jsonify({'success': True, 'data': content})
+        else:
+            return jsonify({'success': False, 'message': '用例不存在'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'读取失败: {str(e)}'})
+
+
+@main_bp.route('/api/test-cases/<test_plan>/<case_name>', methods=['DELETE'])
+def delete_test_case(test_plan, case_name):
+    """删除测试用例"""
+    try:
+        file_path = os.path.join(platform.tests_data_dir, test_plan, f"{case_name}.json")
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return jsonify({'success': True, 'message': '删除成功'})
+        else:
+            return jsonify({'success': False, 'message': '用例不存在'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'删除失败: {str(e)}'})
 
 
 @main_bp.route('/test-execution')
