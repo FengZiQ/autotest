@@ -1,92 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
-import json
-import subprocess
-import threading
+from services.platform import TestPlatform
 from flask import Blueprint, render_template, request, jsonify
-import sys
 
 # 创建主蓝图
 main_bp = Blueprint('main', __name__)
-
-
-class TestPlatform:
-    def __init__(self):
-        self.base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.tests_data_dir = os.path.join(self.base_dir, 'tests_data')
-        self.reports_dir = os.path.join(self.base_dir, 'reports')
-
-    def get_test_cases(self):
-        """获取所有测试用例文件"""
-        cases = []
-        if os.path.exists(self.tests_data_dir):
-            for file in os.listdir(self.tests_data_dir):
-                if file.endswith('.json'):
-                    cases.append(file.replace('.json', ''))
-        return sorted(cases)
-
-    def get_test_plans(self):
-        """获取所有测试计划"""
-        test_plans = {}
-        if os.path.exists(self.tests_data_dir):
-            for item in os.listdir(self.tests_data_dir):
-                item_path = os.path.join(self.tests_data_dir, item)
-                if os.path.isdir(item_path):
-                    # 获取该测试计划下的所有JSON文件
-                    test_cases = []
-                    for file in os.listdir(item_path):
-                        if file.endswith('.json'):
-                            test_cases.append(file)
-                    test_plans[item] = sorted(test_cases)
-        return test_plans
-
-    def save_test_case(self, test_plan, case_name, case_data):
-        """保存测试用例到指定测试计划"""
-        try:
-            # 验证JSON格式
-            json.loads(case_data)
-
-            # 确保测试计划目录存在
-            plan_dir = os.path.join(self.tests_data_dir, test_plan)
-            os.makedirs(plan_dir, exist_ok=True)
-
-            # 保存文件
-            file_path = os.path.join(plan_dir, f"{case_name}.json")
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(case_data)
-            return True, "保存成功"
-        except json.JSONDecodeError as e:
-            return False, f"JSON格式错误: {str(e)}"
-        except Exception as e:
-            return False, f"保存失败: {str(e)}"
-
-    def execute_tests(self, mark=None):
-        """执行测试用例"""
-        try:
-            test_entrance = os.path.join(self.base_dir, 'tests', 'API', 'test_entrance.py')
-            cmd = ['pytest', test_entrance, '-v']
-
-            if mark and mark != 'all':
-                cmd.extend(['-m', mark])
-
-            # 在后台线程中执行测试
-            def run_tests():
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    cwd=self.base_dir
-                )
-                print(f"测试执行完成: {result.returncode}")
-
-            thread = threading.Thread(target=run_tests)
-            thread.daemon = True
-            thread.start()
-
-            return True, "测试已开始执行"
-        except Exception as e:
-            return False, f"执行失败: {str(e)}"
-
 
 platform = TestPlatform()
 
@@ -150,13 +68,40 @@ def test_execution():
     return render_template('test_execution.html')
 
 
-@main_bp.route('/api/execute-tests', methods=['POST'])
-def execute_tests():
-    data = request.json
-    mark = data.get('mark', 'all')
+# 获取测试计划列表
+@main_bp.route('/api/test-plans')
+def get_test_plans():
+    """获取所有测试计划"""
+    test_plans = platform.get_test_plans()
+    return jsonify({'success': True, 'test_plans': list(test_plans.keys())})
 
-    success, message = platform.execute_tests(mark)
-    return jsonify({'success': success, 'message': message})
+
+# 执行测试计划
+@main_bp.route('/api/execute-test-plan', methods=['POST'])
+def execute_test_plan():
+    data = request.json
+    test_plan = data.get('test_plan')
+
+    if not test_plan:
+        return jsonify({'success': False, 'message': '请选择测试计划'})
+
+    success, message, log_file = platform.execute_test_plan(test_plan)
+    return jsonify({
+        'success': success,
+        'message': message,
+        'log_file': log_file
+    })
+
+
+# 获取执行日志
+@main_bp.route('/api/execution-log')
+def get_execution_log():
+    log_file = request.args.get('log_file')
+    if not log_file:
+        return jsonify({'success': False, 'message': '缺少日志文件参数'})
+
+    log_content = platform.get_execution_log(log_file)
+    return jsonify({'success': True, 'log_content': log_content})
 
 
 @main_bp.route('/mock-management')

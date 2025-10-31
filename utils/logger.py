@@ -39,7 +39,7 @@ def log_record(timestamp):
     def custom_filter(record):
         allowed_names = {
             'root',
-            'airtest.core.api',
+            'airtest.services.api',
             'airtest.aircv.multiscale_template_matching',
             'windows_app_test',
             'http_client',
@@ -48,7 +48,7 @@ def log_record(timestamp):
         if record.name not in allowed_names:
             return False
 
-        if record.name == 'airtest.core.api':
+        if record.name == 'airtest.services.api':
             message = record.getMessage()
             return "Try finding" in message or "match result" in message
         return True

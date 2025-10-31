@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
-from core.get_tset_plan import all_test_plan
+from core.get_test_plan import all_test_plan
 from utils.path_util import get_path
 from utils.file_utils import reading_json_file as load_test_data
 

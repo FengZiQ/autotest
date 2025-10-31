@@ -6,52 +6,493 @@
 
     <div class="execution-form">
         <div class="form-group">
-            <label for="testMark">选择测试范围:</label>
-            <select id="testMark">
-                <option value="all">全部执行</option>
-                <option value="smoke">冒烟测试</option>
-                <option value="regression">回归测试</option>
-                <option value="api">接口测试</option>
+            <label for="testPlan">选择测试计划:</label>
+            <select id="testPlan" required>
+                <option value="">请选择测试计划</option>
+                <option value="smoke">冒烟测试 (smoke)</option>
+                <option value="order">订单测试 (order)</option>
+                <option value="full_functional">全功能测试 (full_functional)</option>
+                <option value="user_center">用户中心测试 (user_center)</option>
             </select>
+            <div class="form-hint">选择要执行的测试计划，将执行 pytest -m api_测试计划名</div>
         </div>
 
-        <button id="executeBtn" class="btn btn-primary">开始执行测试</button>
+        <div class="button-group">
+            <button id="executeBtn" class="btn btn-primary">开始执行测试</button>
+            <button id="stopBtn" class="btn btn-danger" disabled>停止测试</button>
+            <button id="clearLogBtn" class="btn btn-secondary">清空日志</button>
+        </div>
+    </div>
+
+    <div class="execution-info">
+        <h3>执行信息</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>当前状态:</label>
+                <span id="executionStatus">等待执行</span>
+            </div>
+            <div class="info-item">
+                <label>执行的命令:</label>
+                <span id="executionCommand">-</span>
+            </div>
+            <div class="info-item">
+                <label>开始时间:</label>
+                <span id="startTime">-</span>
+            </div>
+        </div>
     </div>
 
     <div class="execution-log">
-        <h3>执行日志</h3>
+        <div class="log-header">
+            <h3>执行日志</h3>
+            <div class="log-controls">
+                <button id="autoScrollBtn" class="btn btn-small btn-active">自动滚动</button>
+                <button id="copyLogBtn" class="btn btn-small">复制日志</button>
+            </div>
+        </div>
         <div id="logOutput" class="log-output">
-            <!-- 执行日志将在这里显示 -->
+            <div class="log-placeholder">日志将在此处显示...</div>
         </div>
     </div>
 </div>
 
 <script>
-document.getElementById('executeBtn').addEventListener('click', function() {
-    const mark = document.getElementById('testMark').value;
+// 全局变量
+let currentLogFile = null;
+let logPollingInterval = null;
+let autoScrollEnabled = true;
+
+// 初始化事件监听
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('executeBtn').addEventListener('click', executeTests);
+    document.getElementById('stopBtn').addEventListener('click', stopTests);
+    document.getElementById('clearLogBtn').addEventListener('click', clearLog);
+    document.getElementById('autoScrollBtn').addEventListener('click', toggleAutoScroll);
+    document.getElementById('copyLogBtn').addEventListener('click', copyLog);
+
+    // 加载测试计划列表
+    loadTestPlans();
+});
+
+// 加载测试计划列表
+async function loadTestPlans() {
+    try {
+        const response = await fetch('/api/test-plans');
+        const data = await response.json();
+
+        if (data.success) {
+            const testPlanSelect = document.getElementById('testPlan');
+            // 清空现有选项（保留第一个提示选项）
+            while (testPlanSelect.children.length > 1) {
+                testPlanSelect.removeChild(testPlanSelect.lastChild);
+            }
+
+            // 添加测试计划选项
+            data.test_plans.forEach(plan => {
+                const option = document.createElement('option');
+                option.value = plan;
+
+                // 根据测试计划名称显示中文描述
+                const planNames = {
+                    'smoke': '冒烟测试',
+                    'order': '订单测试',
+                    'full_functional': '全功能测试',
+                    'user_center': '用户中心测试'
+                };
+
+                option.textContent = `${planNames[plan] || plan} (${plan})`;
+                testPlanSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('加载测试计划失败:', error);
+    }
+}
+
+// 执行测试
+async function executeTests() {
+    const testPlan = document.getElementById('testPlan').value;
+    const executeBtn = document.getElementById('executeBtn');
+    const stopBtn = document.getElementById('stopBtn');
+
+    if (!testPlan) {
+        alert('请选择测试计划');
+        return;
+    }
+
+    // 更新UI状态
+    executeBtn.disabled = true;
+    executeBtn.textContent = '执行中...';
+    stopBtn.disabled = false;
+
+    // 更新执行信息
+    updateExecutionInfo('正在执行', `pytest -m api_${testPlan}`, new Date().toLocaleString());
+
+    // 清空日志
+    clearLog();
+    addLogEntry(`开始执行测试计划: ${testPlan}`);
+    addLogEntry(`执行命令: pytest -m api_${testPlan}`);
+    addLogEntry(`开始时间: ${new Date().toLocaleString()}`);
+    addLogEntry('='.repeat(50));
+
+    try {
+        const response = await fetch('/api/execute-test-plan', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                test_plan: testPlan
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            currentLogFile = data.log_file;
+            addLogEntry('测试已开始在后台执行，正在获取日志...');
+
+            // 开始轮询日志
+            startLogPolling();
+        } else {
+            addLogEntry(`执行失败: ${data.message}`, 'error');
+            resetUI();
+        }
+    } catch (error) {
+        console.error('执行测试失败:', error);
+        addLogEntry(`执行失败: ${error.message}`, 'error');
+        resetUI();
+    }
+}
+
+// 开始轮询日志
+function startLogPolling() {
+    if (logPollingInterval) {
+        clearInterval(logPollingInterval);
+    }
+
+    logPollingInterval = setInterval(fetchLog, 2000); // 每2秒获取一次日志
+}
+
+// 获取日志内容
+async function fetchLog() {
+    if (!currentLogFile) return;
+
+    try {
+        const response = await fetch(`/api/execution-log?log_file=${encodeURIComponent(currentLogFile)}`);
+        const data = await response.json();
+
+        if (data.success) {
+            // 清空日志并显示新内容
+            const logOutput = document.getElementById('logOutput');
+            logOutput.innerHTML = '';
+
+            if (data.log_content) {
+                const lines = data.log_content.split('\n');
+                lines.forEach(line => {
+                    if (line.trim()) {
+                        addLogEntry(line);
+                    }
+                });
+
+                // 自动滚动到底部
+                if (autoScrollEnabled) {
+                    logOutput.scrollTop = logOutput.scrollHeight;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('获取日志失败:', error);
+    }
+}
+
+// 停止测试
+function stopTests() {
+    // 这里可以实现停止测试的逻辑
+    // 注意：停止正在运行的pytest进程比较复杂，可能需要使用进程信号
+    addLogEntry('测试停止功能暂未实现，请等待当前测试完成或手动终止进程', 'warning');
+
+    // 停止日志轮询
+    if (logPollingInterval) {
+        clearInterval(logPollingInterval);
+        logPollingInterval = null;
+    }
+
+    resetUI();
+}
+
+// 清空日志
+function clearLog() {
+    const logOutput = document.getElementById('logOutput');
+    logOutput.innerHTML = '<div class="log-placeholder">日志已清空</div>';
+}
+
+// 切换自动滚动
+function toggleAutoScroll() {
+    autoScrollEnabled = !autoScrollEnabled;
+    const btn = document.getElementById('autoScrollBtn');
+
+    if (autoScrollEnabled) {
+        btn.classList.add('btn-active');
+        btn.textContent = '自动滚动 ✓';
+
+        // 立即滚动到底部
+        const logOutput = document.getElementById('logOutput');
+        logOutput.scrollTop = logOutput.scrollHeight;
+    } else {
+        btn.classList.remove('btn-active');
+        btn.textContent = '自动滚动';
+    }
+}
+
+// 复制日志
+function copyLog() {
+    const logOutput = document.getElementById('logOutput');
+    const text = logOutput.textContent || logOutput.innerText;
+
+    navigator.clipboard.writeText(text).then(() => {
+        showMessage('日志已复制到剪贴板', 'success');
+    }).catch(err => {
+        console.error('复制失败:', err);
+        showMessage('复制失败', 'error');
+    });
+}
+
+// 添加日志条目
+function addLogEntry(message, type = 'info') {
     const logOutput = document.getElementById('logOutput');
 
-    logOutput.innerHTML = '开始执行测试...<br>';
+    // 移除placeholder
+    if (logOutput.querySelector('.log-placeholder')) {
+        logOutput.innerHTML = '';
+    }
 
-    fetch('/api/execute-tests', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            mark: mark
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        logOutput.innerHTML += data.message + '<br>';
-        if (data.success) {
-            logOutput.innerHTML += '测试正在后台执行，请查看控制台输出或报告文件。<br>';
-        }
-    })
-    .catch(error => {
-        logOutput.innerHTML += '执行失败: ' + error + '<br>';
-    });
-});
+    const logEntry = document.createElement('div');
+    logEntry.className = `log-entry log-${type}`;
+    logEntry.textContent = message;
+
+    logOutput.appendChild(logEntry);
+}
+
+// 更新执行信息
+function updateExecutionInfo(status, command, startTime) {
+    document.getElementById('executionStatus').textContent = status;
+    document.getElementById('executionCommand').textContent = command;
+    document.getElementById('startTime').textContent = startTime;
+}
+
+// 重置UI状态
+function resetUI() {
+    document.getElementById('executeBtn').disabled = false;
+    document.getElementById('executeBtn').textContent = '开始执行测试';
+    document.getElementById('stopBtn').disabled = true;
+
+    updateExecutionInfo('执行完成', '-', '-');
+
+    // 停止日志轮询
+    if (logPollingInterval) {
+        clearInterval(logPollingInterval);
+        logPollingInterval = null;
+    }
+}
+
+// 显示消息
+function showMessage(message, type = 'info') {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message message-${type}`;
+    messageDiv.textContent = message;
+
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 4px;
+        color: white;
+        z-index: 1000;
+        max-width: 400px;
+        animation: slideIn 0.3s ease-out;
+    `;
+
+    const colors = {
+        info: '#3498db',
+        success: '#27ae60',
+        warning: '#f39c12',
+        error: '#e74c3c'
+    };
+    messageDiv.style.backgroundColor = colors[type] || colors.info;
+
+    document.body.appendChild(messageDiv);
+
+    setTimeout(() => {
+        messageDiv.style.animation = 'slideOut 0.3s ease-in';
+        setTimeout(() => {
+            if (messageDiv.parentNode) {
+                messageDiv.parentNode.removeChild(messageDiv);
+            }
+        }, 300);
+    }, 3000);
+}
 </script>
+
+<style>
+.execution-form {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.btn-active {
+    background-color: #28a745 !important;
+}
+
+.execution-info {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.info-item label {
+    font-weight: bold;
+    color: #495057;
+}
+
+.execution-log {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.log-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.log-output {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem;
+    font-family: 'Courier New', monospace;
+    min-height: 400px;
+    max-height: 600px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    line-height: 1.4;
+}
+
+.log-placeholder {
+    color: #6c757d;
+    font-style: italic;
+    text-align: center;
+    padding: 2rem;
+}
+
+.log-entry {
+    margin-bottom: 2px;
+}
+
+.log-info {
+    color: #d4d4d4;
+}
+
+.log-success {
+    color: #28a745;
+}
+
+.log-warning {
+    color: #ffc107;
+}
+
+.log-error {
+    color: #dc3545;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+}
+
+.message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 4px;
+    color: white;
+    z-index: 1000;
+    max-width: 400px;
+    animation: slideIn 0.3s ease-out;
+}
+
+.message-info {
+    background-color: #3498db;
+}
+
+.message-success {
+    background-color: #27ae60;
+}
+
+.message-warning {
+    background-color: #f39c12;
+}
+
+.message-error {
+    background-color: #e74c3c;
+}
+</style>
 {% endblock %}
