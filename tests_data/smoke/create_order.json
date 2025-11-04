@@ -1,0 +1,37 @@
+[
+        {
+            "case_name": "下单",
+            "step_number": "1",
+            "actions": {
+                "method": "POST",
+                "url_path": "/order/create",
+                "headers": {
+                    "content-type": "application/json"
+                },
+                "data": {
+                    "address": "西安市鱼化寨街道",
+                    "goods": "货物",
+                    "customerInfo": {
+                        "userId": 253262,
+                        "userName": "测试账户",
+                        "mobile": "13700000000"
+                    }
+                },
+                "extract": {
+                    "order_id": "data.orderId"
+                }
+            },
+            "expected_results": {
+                "assert_form": "response_json_structure",
+                "assert_data": {
+                    "success": true,
+                    "code": 200,
+                    "message": "订单创建成功",
+                    "data": {
+                        "orderId": 200000,
+                        "orderNumber": "D20251104ID200000"
+                    }
+                }
+            }
+        }
+]

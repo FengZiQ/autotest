@@ -3,7 +3,8 @@ from flask import Flask
 
 # 注册蓝图
 from routes import main_bp
-from mock.login_test_data import mock_login
+from mock.user_service import mock_login
+from mock.order_service import mock_order
 
 
 app = Flask(__name__)
@@ -13,6 +14,7 @@ app.config['DEFAULT_CHARSET'] = 'utf-8'  # 设置默认字符集
 
 app.register_blueprint(main_bp)
 app.register_blueprint(mock_login, url_prefix='//gbsp')
+app.register_blueprint(mock_order, url_prefix='')
 
 
 if __name__ == '__main__':
