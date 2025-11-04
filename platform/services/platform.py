@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import json
+import glob
 import subprocess
 import threading
 from datetime import datetime
@@ -11,6 +12,9 @@ class TestPlatform:
         self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.tests_data_dir = os.path.join(self.base_dir, 'tests_data')
         self.reports_dir = os.path.join(self.base_dir, 'reports')
+        self.test_completed = False
+        self.test_exit_code = None
+        self.current_timestamp = None
 
     def get_test_cases(self):
         """获取所有测试用例文件"""
@@ -120,6 +124,123 @@ class TestPlatform:
                 return "日志文件不存在或测试尚未开始"
         except Exception as e:
             return f"读取日志失败: {str(e)}"
+
+    def execute_test_plan_with_logging(self, test_plan):
+        """执行指定的测试计划，并返回日志和报告信息"""
+        try:
+            # 生成时间戳
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+            # 构建 pytest 命令
+            test_entrance = os.path.join(self.base_dir, 'tests', 'API', 'test_entrance.py')
+            mark_name = f"api_{test_plan}"
+            cmd = ['pytest', test_entrance, '-v', '-m', mark_name]
+
+            # 设置环境变量，确保使用正确的日志配置
+            env = os.environ.copy()
+            env['PYTEST_CURRENT_TEST'] = f'{test_plan}_{timestamp}'
+
+            # 在后台线程中执行测试
+            def run_tests():
+                process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    cwd=self.base_dir,
+                    bufsize=1,
+                    universal_newlines=True,
+                    env=env
+                )
+
+                # 等待进程完成
+                process.wait()
+
+                # 标记测试完成
+                self.test_completed = True
+                self.test_exit_code = process.returncode
+
+            thread = threading.Thread(target=run_tests)
+            thread.daemon = True
+            thread.start()
+
+            # 返回时间戳用于查找日志和报告
+            return True, "测试已开始执行", timestamp
+        except Exception as e:
+            return False, f"执行失败: {str(e)}", None
+
+    def get_latest_log_content(self, timestamp):
+        """根据时间戳获取最新的日志内容"""
+        try:
+            logs_dir = os.path.join(self.reports_dir, 'logs')
+            if not os.path.exists(logs_dir):
+                return "日志目录不存在"
+
+            # 查找匹配时间戳的日志文件
+            log_pattern = os.path.join(logs_dir, f'test_{timestamp}*.log')
+            log_files = glob.glob(log_pattern)
+
+            if not log_files:
+                # 如果没有找到精确匹配，尝试获取最新的日志文件
+                all_logs = glob.glob(os.path.join(logs_dir, 'test_*.log'))
+                if all_logs:
+                    latest_log = max(all_logs, key=os.path.getctime)
+                    with open(latest_log, 'r', encoding='utf-8') as f:
+                        return f.read()
+                return "未找到日志文件"
+
+            # 读取最新的匹配日志文件
+            latest_log = max(log_files, key=os.path.getctime)
+            with open(latest_log, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception as e:
+            return f"读取日志失败: {str(e)}"
+
+    def get_latest_report(self, timestamp):
+        """根据时间戳获取最新的测试报告"""
+        try:
+            reports_dir = self.reports_dir
+            if not os.path.exists(reports_dir):
+                return None
+
+            # 查找匹配时间戳的报告文件
+            report_pattern = os.path.join(reports_dir, f'report_{timestamp}*.html')
+            report_files = glob.glob(report_pattern)
+
+            if not report_files:
+                # 如果没有找到精确匹配，尝试获取最新的报告文件
+                all_reports = glob.glob(os.path.join(reports_dir, 'report_*.html'))
+                if all_reports:
+                    return max(all_reports, key=os.path.getctime)
+                return None
+
+            # 返回最新的匹配报告文件
+            return max(report_files, key=os.path.getctime)
+        except Exception as e:
+            print(f"查找报告失败: {e}")
+            return None
+
+    def is_test_running(self):
+        """检查测试是否仍在运行"""
+        # 简单的检查方法：查看是否有pytest进程
+        try:
+            result = subprocess.run(
+                ['pgrep', '-f', 'pytest'],
+                capture_output=True,
+                text=True
+            )
+            return result.returncode == 0
+        except:
+            # 如果pgrep不可用，使用另一种方法
+            try:
+                result = subprocess.run(
+                    ['ps', 'aux'],
+                    capture_output=True,
+                    text=True
+                )
+                return 'pytest' in result.stdout
+            except:
+                return False
 
 
 if __name__ == '__main__':

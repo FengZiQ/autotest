@@ -31,7 +31,6 @@ user_info_data = {
 def get_users():
     data = request.json
     user_name = data.get('userName')
-    print(user_name)
     if len(user_name) != 11:
         return jsonify({
             "success": False,
@@ -41,13 +40,13 @@ def get_users():
                 "error_description": "用户名或者密码无效",
                 "error": "invalid_request"
             },
-            "responseTime": 1761729973262
+            "responseTime": int(datetime.now().timestamp()*1000)
         })
     return jsonify({
         "code": 200,
         "success": True,
         "data": login_data,
-        "responseTime": 1761729973262
+        "responseTime": int(datetime.now().timestamp()*1000)
     })
 
 
@@ -57,5 +56,5 @@ def create_user():
         "code": 200,
         "success": True,
         "data": user_info_data,
-        "responseTime": 1761729973262
+        "responseTime": int(datetime.now().timestamp()*1000)
     })

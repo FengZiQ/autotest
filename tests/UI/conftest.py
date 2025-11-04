@@ -8,7 +8,7 @@ from pywinauto import Application
 from utils.path_util import get_path
 from config.app_config import config_data
 from utils.kill_process import kill_process_by_name as kill_app
-from core.windows_app_test import WinAppTest
+from core.windows_client import WinAppHandel
 
 
 # 计算器测试相关夹具
@@ -21,7 +21,7 @@ def windows_device():
     dev = connect_device("Windows:///")
     auto_setup(__file__, devices=[f"Windows:///"])
 
-    yield WinAppTest(app_device=dev)
+    yield WinAppHandel(app_device=dev)
 
     # 增强的清理逻辑
     try:

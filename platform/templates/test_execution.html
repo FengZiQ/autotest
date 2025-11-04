@@ -39,15 +39,20 @@
                 <label>开始时间:</label>
                 <span id="startTime">-</span>
             </div>
+            <div class="info-item">
+                <label>测试报告:</label>
+                <span id="reportLink">-</span>
+            </div>
         </div>
     </div>
 
     <div class="execution-log">
         <div class="log-header">
-            <h3>执行日志</h3>
+            <h3>执行日志 (log_record() 记录)</h3>
             <div class="log-controls">
                 <button id="autoScrollBtn" class="btn btn-small btn-active">自动滚动</button>
                 <button id="copyLogBtn" class="btn btn-small">复制日志</button>
+                <button id="refreshLogBtn" class="btn btn-small">刷新日志</button>
             </div>
         </div>
         <div id="logOutput" class="log-output">
@@ -58,9 +63,10 @@
 
 <script>
 // 全局变量
-let currentLogFile = null;
+let currentTimestamp = null;
 let logPollingInterval = null;
 let autoScrollEnabled = true;
+let testCompleted = false;
 
 // 初始化事件监听
 document.addEventListener('DOMContentLoaded', function() {
@@ -69,45 +75,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('clearLogBtn').addEventListener('click', clearLog);
     document.getElementById('autoScrollBtn').addEventListener('click', toggleAutoScroll);
     document.getElementById('copyLogBtn').addEventListener('click', copyLog);
-
-    // 加载测试计划列表
-    loadTestPlans();
+    document.getElementById('refreshLogBtn').addEventListener('click', manualRefreshLog);
 });
-
-// 加载测试计划列表
-async function loadTestPlans() {
-    try {
-        const response = await fetch('/api/test-plans');
-        const data = await response.json();
-
-        if (data.success) {
-            const testPlanSelect = document.getElementById('testPlan');
-            // 清空现有选项（保留第一个提示选项）
-            while (testPlanSelect.children.length > 1) {
-                testPlanSelect.removeChild(testPlanSelect.lastChild);
-            }
-
-            // 添加测试计划选项
-            data.test_plans.forEach(plan => {
-                const option = document.createElement('option');
-                option.value = plan;
-
-                // 根据测试计划名称显示中文描述
-                const planNames = {
-                    'smoke': '冒烟测试',
-                    'order': '订单测试',
-                    'full_functional': '全功能测试',
-                    'user_center': '用户中心测试'
-                };
-
-                option.textContent = `${planNames[plan] || plan} (${plan})`;
-                testPlanSelect.appendChild(option);
-            });
-        }
-    } catch (error) {
-        console.error('加载测试计划失败:', error);
-    }
-}
 
 // 执行测试
 async function executeTests() {
@@ -120,19 +89,23 @@ async function executeTests() {
         return;
     }
 
+    // 重置状态
+    testCompleted = false;
+
     // 更新UI状态
     executeBtn.disabled = true;
     executeBtn.textContent = '执行中...';
     stopBtn.disabled = false;
 
     // 更新执行信息
-    updateExecutionInfo('正在执行', `pytest -m api_${testPlan}`, new Date().toLocaleString());
+    const startTime = new Date().toLocaleString();
+    updateExecutionInfo('正在执行', `pytest -m api_${testPlan}`, startTime, '-');
 
     // 清空日志
     clearLog();
     addLogEntry(`开始执行测试计划: ${testPlan}`);
     addLogEntry(`执行命令: pytest -m api_${testPlan}`);
-    addLogEntry(`开始时间: ${new Date().toLocaleString()}`);
+    addLogEntry(`开始时间: ${startTime}`);
     addLogEntry('='.repeat(50));
 
     try {
@@ -149,7 +122,7 @@ async function executeTests() {
         const data = await response.json();
 
         if (data.success) {
-            currentLogFile = data.log_file;
+            currentTimestamp = data.timestamp;
             addLogEntry('测试已开始在后台执行，正在获取日志...');
 
             // 开始轮询日志
@@ -171,26 +144,34 @@ function startLogPolling() {
         clearInterval(logPollingInterval);
     }
 
-    logPollingInterval = setInterval(fetchLog, 2000); // 每2秒获取一次日志
+    logPollingInterval = setInterval(fetchLog, 3000); // 每3秒获取一次日志
 }
 
 // 获取日志内容
 async function fetchLog() {
-    if (!currentLogFile) return;
+    if (!currentTimestamp) return;
 
     try {
-        const response = await fetch(`/api/execution-log?log_file=${encodeURIComponent(currentLogFile)}`);
+        const response = await fetch(`/api/execution-log?timestamp=${encodeURIComponent(currentTimestamp)}`);
         const data = await response.json();
 
         if (data.success) {
             // 清空日志并显示新内容
             const logOutput = document.getElementById('logOutput');
-            logOutput.innerHTML = '';
+
+            // 移除placeholder
+            if (logOutput.querySelector('.log-placeholder')) {
+                logOutput.innerHTML = '';
+            }
 
             if (data.log_content) {
+                // 解析日志内容，按行处理
                 const lines = data.log_content.split('\n');
+                const currentContent = logOutput.innerHTML;
+
+                // 只添加新行（简单的去重，实际可能需要更复杂的逻辑）
                 lines.forEach(line => {
-                    if (line.trim()) {
+                    if (line.trim() && !currentContent.includes(line)) {
                         addLogEntry(line);
                     }
                 });
@@ -200,17 +181,58 @@ async function fetchLog() {
                     logOutput.scrollTop = logOutput.scrollHeight;
                 }
             }
+
+            // 检查测试是否完成
+            if (data.completed) {
+                testCompleted = true;
+                updateExecutionInfo('执行完成', `pytest -m api_${document.getElementById('testPlan').value}`,
+                                  document.getElementById('startTime').textContent,
+                                  data.report_url ? '可用' : '生成中');
+
+                // 显示报告链接
+                if (data.report_url) {
+                    showReportLink(data.report_url);
+                }
+
+                // 停止轮询
+                if (logPollingInterval) {
+                    clearInterval(logPollingInterval);
+                    logPollingInterval = null;
+                }
+
+                // 重置UI
+                resetUI();
+
+                addLogEntry('='.repeat(50));
+                addLogEntry('测试执行完成！');
+                if (data.report_url) {
+                    addLogEntry(`测试报告已生成: ${data.report_url}`, 'success');
+                }
+            }
         }
     } catch (error) {
         console.error('获取日志失败:', error);
     }
 }
 
+// 手动刷新日志
+function manualRefreshLog() {
+    if (currentTimestamp) {
+        fetchLog();
+        showMessage('日志已刷新', 'info');
+    }
+}
+
+// 显示报告链接
+function showReportLink(reportUrl) {
+    const reportLinkSpan = document.getElementById('reportLink');
+    reportLinkSpan.innerHTML = `<a href="${reportUrl}" target="_blank" class="report-link">查看测试报告</a>`;
+}
+
 // 停止测试
 function stopTests() {
     // 这里可以实现停止测试的逻辑
-    // 注意：停止正在运行的pytest进程比较复杂，可能需要使用进程信号
-    addLogEntry('测试停止功能暂未实现，请等待当前测试完成或手动终止进程', 'warning');
+    addLogEntry('测试停止功能暂未实现，请等待当前测试完成', 'warning');
 
     // 停止日志轮询
     if (logPollingInterval) {
@@ -219,6 +241,7 @@ function stopTests() {
     }
 
     resetUI();
+    updateExecutionInfo('已停止', '-', '-', '-');
 }
 
 // 清空日志
@@ -269,16 +292,39 @@ function addLogEntry(message, type = 'info') {
 
     const logEntry = document.createElement('div');
     logEntry.className = `log-entry log-${type}`;
-    logEntry.textContent = message;
+
+    // 处理日志格式（根据log_record的格式）
+    let formattedMessage = message;
+
+    // 尝试解析日志格式 [时间][级别]<名称> 内容:消息
+    const logRegex = /^\[(.*?)\]\[(.*?)\]<(.*?)>\s*(.*?):(.*)$/;
+    const match = message.match(logRegex);
+
+    if (match) {
+        const [, time, level, name, prefix, content] = match;
+        formattedMessage = `
+            <span class="log-time">[${time}]</span>
+            <span class="log-level level-${level.toLowerCase()}">[${level}]</span>
+            <span class="log-name">&lt;${name}&gt;</span>
+            <span class="log-content">${content}</span>
+        `;
+        logEntry.innerHTML = formattedMessage;
+    } else {
+        logEntry.textContent = message;
+    }
 
     logOutput.appendChild(logEntry);
 }
 
 // 更新执行信息
-function updateExecutionInfo(status, command, startTime) {
+function updateExecutionInfo(status, command, startTime, reportStatus) {
     document.getElementById('executionStatus').textContent = status;
     document.getElementById('executionCommand').textContent = command;
     document.getElementById('startTime').textContent = startTime;
+
+    if (reportStatus !== '-') {
+        document.getElementById('reportLink').textContent = reportStatus;
+    }
 }
 
 // 重置UI状态
@@ -286,14 +332,6 @@ function resetUI() {
     document.getElementById('executeBtn').disabled = false;
     document.getElementById('executeBtn').textContent = '开始执行测试';
     document.getElementById('stopBtn').disabled = true;
-
-    updateExecutionInfo('执行完成', '-', '-');
-
-    // 停止日志轮询
-    if (logPollingInterval) {
-        clearInterval(logPollingInterval);
-        logPollingInterval = null;
-    }
 }
 
 // 显示消息
@@ -397,6 +435,16 @@ function showMessage(message, type = 'info') {
     color: #495057;
 }
 
+.report-link {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.report-link:hover {
+    text-decoration: underline;
+}
+
 .execution-log {
     background: white;
     border-radius: 8px;
@@ -439,6 +487,46 @@ function showMessage(message, type = 'info') {
 
 .log-entry {
     margin-bottom: 2px;
+    padding: 2px 0;
+}
+
+.log-time {
+    color: #6a9955;
+}
+
+.log-level {
+    font-weight: bold;
+    margin: 0 4px;
+}
+
+.level-info {
+    color: #569cd6;
+}
+
+.level-debug {
+    color: #ce9178;
+}
+
+.level-warning {
+    color: #ffc107;
+}
+
+.level-error {
+    color: #f44747;
+}
+
+.level-critical {
+    color: #f44747;
+    font-weight: bold;
+}
+
+.log-name {
+    color: #4ec9b0;
+    margin: 0 4px;
+}
+
+.log-content {
+    color: #d4d4d4;
 }
 
 .log-info {
