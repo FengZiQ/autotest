@@ -25,7 +25,7 @@ class TestExecute:
     @pytest.mark.api_full_functional
     @pytest.mark.usefixtures("http_client")
     @pytest.mark.parametrize("case_data", test_plan.get('full_functional'))
-    def test_execute_all_fun_cases(self, http_client, case_data):
+    def test_execute_full_functional(self, http_client, case_data):
         # 加载测试用例
         test_data = load_test_data(get_path('tests_data', 'full_functional', case_data))
 
@@ -39,7 +39,7 @@ class TestExecute:
     @pytest.mark.api_order
     @pytest.mark.usefixtures("http_client")
     @pytest.mark.parametrize("case_data", test_plan.get('order'))
-    def test_execute_all_fun_cases(self, http_client, case_data):
+    def test_execute_order_cases(self, http_client, case_data):
         # 加载测试用例
         test_data = load_test_data(get_path('tests_data', 'order', case_data))
 
@@ -53,7 +53,7 @@ class TestExecute:
     @pytest.mark.api_user_center
     @pytest.mark.usefixtures("http_client")
     @pytest.mark.parametrize("case_data", test_plan.get('user_center'))
-    def test_execute_all_fun_cases(self, http_client, case_data):
+    def test_execute_user_center_cases(self, http_client, case_data):
         # 加载测试用例
         test_data = load_test_data(get_path('tests_data', 'user_center', case_data))
 

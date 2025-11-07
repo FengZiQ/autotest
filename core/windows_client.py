@@ -8,7 +8,7 @@ from config.app_config import config_data
 logger = logging.getLogger('windows_app_test')
 
 
-class WinAppTest:
+class WinAppHandel:
     def __init__(self, app_device):
         MySettings()
         self.dev = app_device

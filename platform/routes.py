@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 from services.platform import TestPlatform
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, send_from_directory
 
 # 创建主蓝图
 main_bp = Blueprint('main', __name__)
@@ -77,6 +77,7 @@ def get_test_plans():
 
 
 # 执行测试计划
+# 执行测试计划
 @main_bp.route('/api/execute-test-plan', methods=['POST'])
 def execute_test_plan():
     data = request.json
@@ -85,23 +86,55 @@ def execute_test_plan():
     if not test_plan:
         return jsonify({'success': False, 'message': '请选择测试计划'})
 
-    success, message, log_file = platform.execute_test_plan(test_plan)
+    # 重置状态
+    platform.test_completed = False
+    platform.test_exit_code = None
+
+    success, message, timestamp = platform.execute_test_plan_with_logging(test_plan)
+    platform.current_timestamp = timestamp
+
     return jsonify({
         'success': success,
         'message': message,
-        'log_file': log_file
+        'timestamp': timestamp
     })
 
 
 # 获取执行日志
 @main_bp.route('/api/execution-log')
 def get_execution_log():
-    log_file = request.args.get('log_file')
-    if not log_file:
-        return jsonify({'success': False, 'message': '缺少日志文件参数'})
+    timestamp = request.args.get('timestamp')
+    if not timestamp:
+        return jsonify({'success': False, 'message': '缺少时间戳参数'})
 
-    log_content = platform.get_execution_log(log_file)
-    return jsonify({'success': True, 'log_content': log_content})
+    log_content = platform.get_latest_log_content(timestamp)
+
+    # 检查测试是否完成
+    is_running = platform.is_test_running()
+    if not is_running and platform.current_timestamp == timestamp:
+        platform.test_completed = True
+        report_path = platform.get_latest_report(timestamp)
+        if report_path:
+            # 转换为相对路径用于URL
+            report_url = report_path.replace(platform.base_dir, '').lstrip('/')
+        else:
+            report_url = None
+    else:
+        report_url = None
+
+    return jsonify({
+        'success': True,
+        'log_content': log_content,
+        'completed': platform.test_completed,
+        'report_url': report_url
+    })
+
+
+# 提供测试报告访问
+@main_bp.route('/reports/<path:filename>')
+def serve_report(filename):
+    reports_dir = platform.reports_dir
+    return send_from_directory(reports_dir, filename)
 
 
 @main_bp.route('/mock-management')
