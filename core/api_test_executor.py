@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import re
 import logging
 from core.http_client import HTTPClient, APIAssert
@@ -111,7 +112,7 @@ class TestCaseExecutor:
                 return None
 
             if response:
-                logger.info(f"响应内容: {response.text}")
+                logger.info(f"响应内容为: {response.text}")
 
                 # 提取数据
                 if extract_rules:
@@ -126,14 +127,12 @@ class TestCaseExecutor:
     def perform_assertion(self, expected_results):
         """
         执行断言
-        :param response: 响应对象
         :param expected_results: 期望结果配置
         """
         assert_flag = None
         if not self.response:
             logger.warning("无法执行断言: 响应对象为空")
             return
-        logger.debug(f'expected_results:{expected_results}')
         assert_form = expected_results.get('assert_form')
         assert_data = expected_results.get('assert_data')
 

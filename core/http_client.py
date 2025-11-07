@@ -134,8 +134,6 @@ class APIAssert:
         assert_result = None
         try:
             actuality = response.status_code
-            logger.info(f'期望结果为:{expectation}')
-            logger.info(f'实际结果为:{actuality}')
             if actuality == expectation:
                 # logger.info('通过')
                 logger.info('<span style="color: green; font-weight: bold;">通过</span>')
@@ -149,7 +147,7 @@ class APIAssert:
             else:
                 assert_result = False
         except Exception as e:
-            logger.error(f'期望结果为:{expectation}；异常信息为：{e}')
+            logger.error(f'断言异常!异常信息为：{e}')
             # logger.info('失败')
             logger.info('<span style="color: red; font-weight: bold;">失败</span>')
             self.FailedFlag = False
@@ -161,8 +159,6 @@ class APIAssert:
         assert_result = None
         try:
             actuality = response.text
-            logger.info(f'期望结果为:{expectation}')
-            logger.info(f'实际结果为:{actuality}')
             if expectation in actuality:
                 # logger.info('通过')
                 logger.info('<span style="color: green; font-weight: bold;">通过</span>')
@@ -176,7 +172,7 @@ class APIAssert:
             else:
                 assert_result = False
         except Exception as e:
-            logger.error(f'期望结果为:{expectation}；异常信息为：{e}')
+            logger.error(f'断言异常!异常信息为：{e}')
             # logger.info('失败')
             logger.info('<span style="color: red; font-weight: bold;">失败</span>')
             self.FailedFlag = False
@@ -188,8 +184,6 @@ class APIAssert:
         assert_result = None
         try:
             actuality = response.json()
-            logger.info(f'期望结果为:{expectation}')
-            logger.info(f'实际结果为:{actuality}')
             match, differences = compare_structure(actuality, expectation)
             if match:
                 # logger.info('通过')
@@ -206,7 +200,7 @@ class APIAssert:
             else:
                 assert_result = False
         except Exception as e:
-            logger.error(f'期望结果为:{expectation}；异常信息为：{e}')
+            logger.error(f'断言异常!异常信息为：{e}')
             # logger.info('失败')
             logger.info('<span style="color: red; font-weight: bold;">失败</span>')
             self.FailedFlag = False
@@ -218,8 +212,6 @@ class APIAssert:
         assert_result = None
         try:
             actuality = response.json()
-            logger.info(f'期望结果为:{expectation}')
-            logger.info(f'实际结果为:{actuality}')
             if expectation.items() <= actuality.items():
                 # logger.info('通过')
                 logger.info('<span style="color: green; font-weight: bold;">通过</span>')
@@ -233,7 +225,7 @@ class APIAssert:
             else:
                 assert_result = False
         except Exception as e:
-            logger.error(f'期望结果为:{expectation}；异常信息为：{e}')
+            logger.error(f'断言异常!异常信息为：{e}')
             # logger.info('失败')
             logger.info('<span style="color: red; font-weight: bold;">失败</span>')
             self.FailedFlag = False
