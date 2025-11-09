@@ -1,37 +1,31 @@
-# 使用Python 3.7官方镜像
-FROM python:3.7-slim
+# 使用 Python 官方镜像
+FROM python:3.9-slim
 
 # 设置工作目录
 WORKDIR /app
 
-# 更新包列表并安装最小化依赖
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    xvfb \
-    libnss3 \
-    libxss1 \
-    libxtst6 \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+# 设置环境变量
+ENV PYTHONPATH=/app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# 复制requirements.txt并安装Python依赖
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 # 复制项目文件
 COPY . .
 
-# 设置环境变量
-ENV PYTHONPATH=/app
-ENV DISPLAY=:99
+# 安装 Python 依赖
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 创建启动脚本
-RUN echo '#!/bin/bash\n\
-Xvfb :99 -screen 0 1024x768x16 &\n\
-sleep 2\n\
-exec "$@"' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+# 创建必要的目录（如果不存在）
+RUN mkdir -p reports/logs reports/screenshots tests_data
 
-# 设置入口点
-ENTRYPOINT ["/app/entrypoint.sh"]
+# 暴露测试平台端口（根据您的平台配置调整端口）
+EXPOSE 5000
 
-# 默认命令（运行API测试）
-CMD ["python", "-m", "pytest", "tests/API/test_entrance.py", "-v"]
+# 启动测试平台
+CMD ["python", "platform/app.py"]

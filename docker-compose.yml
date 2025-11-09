@@ -1,47 +1,28 @@
 version: '3.8'
 
 services:
-  autotest:
-    build: .
-    container_name: automation-tests
+  autotest-platform:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autotest-platform
+    ports:
+      - "5000:5000"  # 宿主机端口:容器端口
     volumes:
+      # 挂载 reports 目录到宿主机
       - ./reports:/app/reports
+      # 挂载 tests_data 目录到宿主机
       - ./tests_data:/app/tests_data
     environment:
       - PYTHONPATH=/app
-      - DISPLAY=:99
+    restart: unless-stopped
+    networks:
+      - autotest-network
 
-  autotest-api:
-    build: .
-    container_name: automation-api-tests
-    command: ["python", "-m", "pytest", "tests/API/test_entrance.py", "-v"]
-    volumes:
-      - ./reports:/app/reports
-      - ./tests_data:/app/tests_data
-    environment:
-      - PYTHONPATH=/app
-      - DISPLAY=:99
+networks:
+  autotest-network:
+    driver: bridge
 
-  autotest-ui:
-    build: .
-    container_name: automation-ui-tests
-    command: ["python", "-m", "pytest", "tests/UI/test_calculator_demo.py", "-v"]
-    volumes:
-      - ./reports:/app/reports
-      - ./tests_data:/app/tests_data
-      - ./resources:/app/resources
-    environment:
-      - PYTHONPATH=/app
-      - DISPLAY=:99
-
-  autotest-all:
-    build: .
-    container_name: automation-all-tests
-    command: ["python", "-m", "pytest", "tests/", "-v"]
-    volumes:
-      - ./reports:/app/reports
-      - ./tests_data:/app/tests_data
-      - ./resources:/app/resources
-    environment:
-      - PYTHONPATH=/app
-      - DISPLAY=:99
+volumes:
+  reports-data:
+  tests-data:
