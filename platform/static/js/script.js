@@ -222,104 +222,6 @@ class TestCaseManager {
 }
 
 // 测试执行相关功能
-class TestExecutor {
-    constructor() {
-        this.initEventListeners();
-    }
-
-    initEventListeners() {
-        const executeBtn = document.getElementById('executeBtn');
-        if (executeBtn) {
-            executeBtn.addEventListener('click', this.executeTests.bind(this));
-        }
-
-        const stopBtn = document.getElementById('stopBtn');
-        if (stopBtn) {
-            stopBtn.addEventListener('click', this.stopTests.bind(this));
-        }
-
-        const downloadBtn = document.getElementById('downloadReport');
-        if (downloadBtn) {
-            downloadBtn.addEventListener('click', this.downloadReport.bind(this));
-        }
-    }
-
-    async executeTests() {
-        const mark = document.getElementById('testMark').value;
-        const logOutput = document.getElementById('logOutput');
-        const executeBtn = document.getElementById('executeBtn');
-
-        // 禁用执行按钮
-        executeBtn.disabled = true;
-        executeBtn.textContent = '执行中...';
-
-        // 清空日志
-        logOutput.innerHTML = '<div class="log-entry">开始执行测试... ' + new Date().toLocaleString() + '</div>';
-
-        try {
-            const response = await fetch('/api/execute-tests', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    mark: mark
-                })
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                logOutput.innerHTML += `<div class="log-entry success">${result.message}</div>`;
-                logOutput.innerHTML += `<div class="log-entry">测试正在后台执行，请查看控制台输出或报告文件。</div>`;
-
-                // 轮询获取执行状态
-                this.pollExecutionStatus();
-            } else {
-                logOutput.innerHTML += `<div class="log-entry error">${result.message}</div>`;
-            }
-        } catch (error) {
-            console.error('执行测试失败:', error);
-            logOutput.innerHTML += `<div class="log-entry error">执行失败: ${error.message}</div>`;
-        } finally {
-            // 重新启用执行按钮
-            setTimeout(() => {
-                executeBtn.disabled = false;
-                executeBtn.textContent = '开始执行测试';
-            }, 5000);
-        }
-    }
-
-    async pollExecutionStatus() {
-        // 这里可以实现轮询获取测试执行状态的功能
-        // 由于测试执行是异步的，可以通过WebSocket或定期请求来获取状态更新
-        console.log('开始轮询测试执行状态...');
-    }
-
-    stopTests() {
-        // 停止测试执行
-        fetch('/api/stop-tests', {
-            method: 'POST'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                TestPlatformUtils.showMessage('测试已停止', 'success');
-            } else {
-                TestPlatformUtils.showMessage('停止测试失败', 'error');
-            }
-        })
-        .catch(error => {
-            console.error('停止测试失败:', error);
-            TestPlatformUtils.showMessage('停止测试失败', 'error');
-        });
-    }
-
-    downloadReport() {
-        const reportType = document.getElementById('reportType').value;
-        TestPlatformUtils.downloadReport(`${reportType}_report.html`);
-    }
-}
 
 // Mock服务管理
 class MockManager {
@@ -429,8 +331,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (path.includes('test-cases')) {
         new TestCaseManager();
-    } else if (path.includes('test-execution')) {
-        new TestExecutor();
     } else if (path.includes('mock-management')) {
         new MockManager();
     }
@@ -524,5 +424,4 @@ window.addEventListener('error', function(e) {
 // 导出到全局作用域
 window.TestPlatformUtils = TestPlatformUtils;
 window.TestCaseManager = TestCaseManager;
-window.TestExecutor = TestExecutor;
 window.MockManager = MockManager;

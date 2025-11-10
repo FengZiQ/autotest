@@ -90,7 +90,7 @@ def execute_test_plan():
     platform.test_completed = False
     platform.test_exit_code = None
 
-    success, message, timestamp = platform.execute_test_plan_with_logging(test_plan)
+    success, message, timestamp = platform.execute_test_plan(test_plan)
     platform.current_timestamp = timestamp
 
     return jsonify({
@@ -107,13 +107,11 @@ def get_execution_log():
     if not timestamp:
         return jsonify({'success': False, 'message': '缺少时间戳参数'})
 
-    log_content = platform.get_latest_log_content(timestamp)
+    log_content = platform.get_log_content(timestamp)
 
-    # 检查测试是否完成
-    is_running = platform.is_test_running()
-    if not is_running and platform.current_timestamp == timestamp:
+    if platform.current_timestamp == timestamp:
         platform.test_completed = True
-        report_path = platform.get_latest_report(timestamp)
+        report_path = platform.get_report(timestamp)
         if report_path:
             # 转换为相对路径用于URL
             report_url = report_path.replace(platform.base_dir, '').lstrip('/')
