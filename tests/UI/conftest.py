@@ -6,7 +6,7 @@ from pytest_html import extras
 from airtest.core.api import *
 from pywinauto import Application
 from utils.path_util import get_path
-from config.app_config import config_data
+from config.windows_app_config import config_data
 from utils.kill_process import kill_process_by_name as kill_app
 from core.windows_client import WinAppHandel
 

@@ -3,7 +3,7 @@ import logging
 from airtest.core.api import *
 from config.airtest_config import MySettings
 from utils.path_util import get_path
-from config.app_config import config_data
+from config.windows_app_config import config_data
 
 logger = logging.getLogger('windows_app_test')
 
