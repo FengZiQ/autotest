@@ -87,15 +87,18 @@ class TestCaseExecutor:
         params = action.get('params', None)
         extract_rules = action.get('extract', None)
 
-        # 替换变量
-        headers = self.replace_variables(headers)
-        data = self.replace_variables(data)
-        params = self.replace_variables(params)
+        # 替换变量：不为空且字典中的values中存在"$"时替换变量
+        if headers and [v for v in headers.values() if '$' in v]:
+            headers = self.replace_variables(headers)
+        if data and [v for v in data.values() if '$' in v]:
+            data = self.replace_variables(data)
+        if params and [v for v in params.values() if '$' in v]:
+            params = self.replace_variables(params)
 
         if data:
-            logger.info(f"请求头headers为{headers}，请求数据为{data}")
+            logger.info(f"请求头headers为{headers}，请求数据data为{data}")
         if params:
-            logger.info(f"请求头headers为{headers}，请求数据为{params}")
+            logger.info(f"请求头headers为{headers}，请求数据params为{params}")
 
         # 发送请求
         try:
@@ -189,7 +192,7 @@ class TestCaseExecutor:
             self.assert_tool.FailedFlag = False
 
         # 重置上下文（可选，根据需求决定是否在用例间重置）
-        self.context = {}
+        # self.context = {}
 
         for tcd in test_case_datas:
             # 在测试用例数据中找出actions与expected_results
@@ -226,64 +229,43 @@ if __name__ == "__main__":
     # 单接口测试用例数据
     test_case_data = [
         {
-            "case_name": "账号密码登录",
+            "case_name": "订单查询",
             "step_number": "1",
             "actions": {
-                "method": "POST",
-                "url_path": "/gbsp/auth/userlogin",
+                "method": "GET",
+                "url_path": "/order/getInfo",
                 "headers": {
                     "content-type": "application/json"
                 },
-                "data": {
-                    "password": "test123@",
-                    "userName": "13717641870"
-                },
-                "extract": {
-                    "access_token": "data.access_token",
-                    "refresh_token": "data.refresh_token"
+                "params": {
+                    "orderId": "${order_id}"
                 }
             },
             "expected_results": {
                 "assert_form": "response_json_structure",
                 "assert_data": {
-                    "success": True,
                     "code": 200,
+                    "success": True,
                     "data": {
-                        "access_token": "cn-8b894f1b-4f39-4fdb-9b48-f44f13c0fee8",
-                        "refresh_token": "cn-e24938d3-0936-464b-9ba9-fe92a978f35a",
-                        "scope": "account_security ent_account_read account_token_login account_privacy_write account_info_write account_info_read",
-                        "token_type": "bearer",
-                        "expires_in": 504018
-                    },
-                    "responseTime": 1760065131643
+                        "orderId": 200000,
+                        "orderNumber": "D20251104ID200000",
+                        "address": "西安市鱼化寨街道",
+                        "goods": "货物",
+                        "customerInfo": {
+                            "userId": 253262,
+                            "userName": "测试账户",
+                            "mobile": "13700000000"
+                        }
+                    }
                 }
-            }
-        },
-        {
-            "case_name": "账号密码登录",
-            "step_number": "2",
-            "actions": {
-                "method": "GET",
-                "url_path": "/gbsp/user/getUserInfo",
-                "headers": {
-                    "content-type": "application/x-www-form-urlencoded",
-                    "Authorization": "${access_token}"
-                },
-                "params": {
-                    "deviceId": "",
-                    "type": ""
-                }
-            },
-            "expected_results": {
-                "assert_form": "response_text_contents",
-                "assert_data": "\"message\":\"未登录!\""
             }
         }
     ]
     # 创建执行器实例
-    executor = TestCaseExecutor(base_url="http://10.0.106.2:8011")  # 替换为实际的base_url
+    executor = TestCaseExecutor(base_url="http://127.0.0.1:5000")  # 替换为实际的base_url
 
     try:
+        executor.context = {'order_id': 6787111}
         # 执行单接口测试
         executor.execute_test_case(test_case_data, "用户登录接口测试")
 

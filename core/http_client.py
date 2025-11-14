@@ -232,6 +232,61 @@ class APIAssert:
         finally:
             return assert_result
 
+    def equals_key_value(self, response, expectation):
+        """断言响应json中键值对与期望结果中的键值对一致"""
+        assert_result = None
+        try:
+            actuality = response.json()
+
+            results = []
+
+            for key_path, expected_value in expectation.items():
+                # 分割key路径
+                keys = key_path.split('.')
+
+                # 在response中查找对应的值
+                current_data = actuality
+
+                try:
+                    for key in keys:
+                        # 处理列表索引的情况（如list_data.0）
+                        if key.isdigit():
+                            key = int(key)
+                        current_data = current_data[key]
+
+                    # 找到对应值，进行比较
+                    actual_value = current_data
+                    if actual_value == expected_value:
+                        continue  # 相等，不做任何记录
+                    else:
+                        results.append(
+                            f"expectation中的{key_path}值{expected_value}与response对应值{actual_value}不相等"
+                        )
+                except (KeyError, IndexError, TypeError):
+                    # 路径不存在的情况
+                    results.append(f"expectation中的{key_path}在response中没有对应关系")
+
+            if results:
+                # logger.info('失败')
+                logger.info('<span style="color: red; font-weight: bold;">失败</span>')
+                self.FailedFlag = True
+            else:
+                # logger.info('通过')
+                logger.info('<span style="color: green; font-weight: bold;">通过</span>')
+
+            if self.FailedFlag:
+                assert_result = True
+            else:
+                assert_result = False
+
+        except Exception as e:
+            logger.error(f'断言异常!异常信息为：{e}')
+            # logger.info('失败')
+            logger.info('<span style="color: red; font-weight: bold;">失败</span>')
+            self.FailedFlag = False
+        finally:
+            return assert_result
+
     def databases_equal(self):
         """
         数据库表中的某个字段值等于期望结果，断言成功

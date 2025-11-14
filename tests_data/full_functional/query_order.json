@@ -1,14 +1,14 @@
 [
         {
-            "case_name": "下单",
+            "case_name": "订单查询",
             "step_number": "1",
             "actions": {
-                "method": "POST",
+                "method": "GET",
                 "url_path": "/order/getInfo",
                 "headers": {
                     "content-type": "application/json"
                 },
-                "data": {
+                "params": {
                     "orderId": "${order_id}"
                 }
             },
