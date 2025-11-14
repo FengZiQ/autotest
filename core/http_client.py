@@ -219,6 +219,7 @@ class APIAssert:
             else:
                 # logger.info('失败')
                 logger.info('<span style="color: red; font-weight: bold;">失败</span>')
+                self.FailedFlag = False
 
             if self.FailedFlag:
                 assert_result = True
@@ -260,19 +261,21 @@ class APIAssert:
                         continue  # 相等，不做任何记录
                     else:
                         results.append(
-                            f"expectation中的{key_path}值{expected_value}与response对应值{actual_value}不相等"
+                            f"期望结果中的{key_path}值{expected_value}与响应内容对应值{actual_value}不相等"
                         )
                 except (KeyError, IndexError, TypeError):
                     # 路径不存在的情况
-                    results.append(f"expectation中的{key_path}在response中没有对应关系")
+                    results.append(f"期望结果中的{key_path}在响应内容中没有对应关系")
 
             if results:
                 # logger.info('失败')
+                logger.info(f'{results}')
                 logger.info('<span style="color: red; font-weight: bold;">失败</span>')
-                self.FailedFlag = True
+                self.FailedFlag = False
             else:
                 # logger.info('通过')
                 logger.info('<span style="color: green; font-weight: bold;">通过</span>')
+                self.FailedFlag = True
 
             if self.FailedFlag:
                 assert_result = True

@@ -146,21 +146,24 @@ class TestCaseExecutor:
         if assert_form == 'response_json_structure':
             if isinstance(assert_data, dict):
                 self.assert_tool.response_json_structure(self.response, assert_data)
-                # self.assert_tool.FailedFlag = False
             else:
                 logger.warning(f'{assert_data}不是json！要求为dict类型。')
                 self.assert_tool.FailedFlag = False
         elif assert_form == 'response_text_contents':
             if isinstance(assert_data, str):
                 self.assert_tool.response_text_contents(self.response, assert_data)
-                # self.assert_tool.FailedFlag = False
             else:
                 logger.warning(f'{assert_data}不是str！要求为str类型。')
                 self.assert_tool.FailedFlag = False
         elif assert_form == 'response_json_contents':
             if isinstance(assert_data, dict):
                 self.assert_tool.response_json_contents(self.response, assert_data)
-                # self.assert_tool.FailedFlag = False
+            else:
+                logger.warning(f'{assert_data}不是json！要求为dict类型。')
+                self.assert_tool.FailedFlag = False
+        elif assert_form == 'equals_key_value':
+            if isinstance(assert_data, dict):
+                self.assert_tool.equals_key_value(self.response, assert_data)
             else:
                 logger.warning(f'{assert_data}不是json！要求为dict类型。')
                 self.assert_tool.FailedFlag = False
