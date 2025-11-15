@@ -1,25 +1,50 @@
 [
-        {
-            "case_name": "订单查询",
-            "step_number": "1",
-            "actions": {
-                "method": "GET",
-                "url_path": "/order/getInfo",
-                "headers": {
-                    "content-type": "application/json"
-                },
-                "params": {
-                    "orderId": "${order_id}"
+    {
+        "case_name": "下单",
+        "step_number": "1",
+        "actions": {
+            "method": "POST",
+            "url_path": "/order/create",
+            "headers": {
+                "content-type": "application/json"
+            },
+            "data": {
+                "address": "西安市鱼化寨街道",
+                "goods": "货物",
+                "customerInfo": {
+                    "userId": 253262,
+                    "userName": "测试账户",
+                    "mobile": "13700000000"
                 }
             },
-            "expected_results": {
-                "assert_form": "equals_key_value",
-                "assert_data": {
-                    "data.orderId": 200000,
-                    "data.orderNumber": "D20251104ID200000",
-                    "data.customerInfo.userId": 253262,
-                    "data.customerInfo.userName": "测试账户"
-                }
+            "extract": {
+                "order_id": "data.orderId"
+            }
+        },
+        "expected_results": {
+            "assert_form": "response_status_equal",
+            "assert_data": 200
+        }
+    },
+    {
+        "case_name": "订单查询",
+        "step_number": "2",
+        "actions": {
+            "method": "GET",
+            "url_path": "/order/getInfo",
+            "headers": {
+                "content-type": "application/json"
+            },
+            "params": {
+                "orderId": "${order_id}"
+            }
+        },
+        "expected_results": {
+            "assert_form": "equals_key_value",
+            "assert_data": {
+                "data.customerInfo.userId": 253262,
+                "data.customerInfo.userName": "测试账户"
             }
         }
+    }
 ]

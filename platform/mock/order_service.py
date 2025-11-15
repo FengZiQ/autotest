@@ -21,9 +21,9 @@ def get_users():
     })
 
 
-@mock_order.route('/order/getInfo', methods=['GET', 'POST'])
+@mock_order.route('/order/getInfo', methods=['GET'])
 def create_user():
-    order_id = random.randint(100000, 10000000)
+    order_id = request.args.get('orderId')
     return jsonify({
         "code": 200,
         "success": True,

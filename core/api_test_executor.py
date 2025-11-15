@@ -143,7 +143,9 @@ class TestCaseExecutor:
         logger.info(f"期望结果: {assert_data}")
 
         # 根据断言形式选择对应的断言方法
-        if assert_form == 'response_json_structure':
+        if assert_form == 'response_status_equal':
+            self.assert_tool.response_status_equal(self.response)
+        elif assert_form == 'response_json_structure':
             if isinstance(assert_data, dict):
                 self.assert_tool.response_json_structure(self.response, assert_data)
             else:
