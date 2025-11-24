@@ -15,8 +15,8 @@ class TestCalculator:
         netease_pris.click_element(
             locator=(
                 AppiumBy.ID,
-                # 'com.netease.pris:id/button_login'
-                'com.netease.pris:id/home_pro_textView_my_note_text'
+                'com.netease.pris:id/button_login'
+                # 'com.netease.pris:id/home_pro_textView_my_note_text'
             )
         )
         page_feature1 = netease_pris.assert_element_present(
