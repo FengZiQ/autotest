@@ -4,6 +4,7 @@ import logging
 import pytest
 from config.android_config import test_app_config
 from core.android_client import AndroidAutomationTool
+from core.android_test_executor import AndroidTestExecutor
 
 
 # 网易阅读app
@@ -19,7 +20,9 @@ def netease_pris():
         logging.warning(f"驱动启动失败，退出测试! 错误信息：{e}")
         pytest.exit('驱动启动失败，退出测试!')
 
-    yield automation_tool
+    executor = AndroidTestExecutor(automation_tool)
+
+    yield executor
 
     # 退出驱动
-    automation_tool.quit_driver()
+    executor.android_tool.quit_driver()

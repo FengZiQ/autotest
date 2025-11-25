@@ -2,12 +2,16 @@
 autotest/
 ├── config/ —> 配置目录  
 │   └── airtest_config.py —> airtest配置ST值设置  
-│   └── app_config.py —> 测试应用相关配置  
+│   └── android_config.py —> Android App测试设置  
+│   └── windows_app_config.py —> Windows应用测试配置  
 │   └── api_test_plan.py —> 接口测试计划  
+│   └── android_test_plan.py —> Android App测试计划  
 ├── core/ —> 测试工具库  
-│   └── windows_app_test.py —> Windows应用测试工具类  
+│   └── windows_client.py —> Windows应用测试工具类  
 │   └── http_client.py —> 接口测试工具类  
 │   └── api_test_executor.py —> 接口测试执行器  
+│   └── android_client.py —> Android App测试工具类  
+│   └── android_test_executor.py —> Android App测试执行器  
 ├── platform/ —> 测试平台  
 │   ├── mock/  —>mock接口返回脚本目录
 │   ├── static/  —> 测试平台静态文件css与js存放目录
@@ -23,6 +27,9 @@ autotest/
 │   │    ├── calculator_assert/ —> 计算器测试断言截图目录  
 ├── tests_data/ —> 测试数据  
 ├── tests/ —> 测试入口  
+│   ├── Android/  —>Android App测试入口  
+│       └── conftest.py —> Android App测试相关的夹具配置  
+│       └── test_entrance.py —> Android App测试入口  
 │   ├── API/  —>API测试入口  
 │       └── conftest.py —> API测试相关的夹具配置  
 │       └── test_entrance.py —> API测试入口  
