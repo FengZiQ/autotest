@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 import time
+import logging
+import subprocess
+from utils.path_util import get_path
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from selenium.webdriver.support.ui import WebDriverWait
@@ -7,6 +10,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from appium.webdriver.common.touch_action import TouchAction
 from appium.webdriver.common.multi_action import MultiAction
+
+
+logger = logging.getLogger('android_client')
 
 
 class AndroidAutomationTool:
@@ -18,7 +24,7 @@ class AndroidAutomationTool:
         self.driver = None
         self.appium_server_url = appium_server_url
         self.touch_action = None
-        print(f"Android自动化工具初始化完成，Appium服务器: {appium_server_url}")
+        logger.debug(f"Android自动化工具初始化完成，Appium服务器: {appium_server_url}")
 
     def setup_driver(self, capabilities):
         """
@@ -27,24 +33,47 @@ class AndroidAutomationTool:
         :return: driver对象
         """
         try:
-            print("正在启动Appium驱动...")
             options = UiAutomator2Options().load_capabilities(capabilities)
             self.driver = webdriver.Remote(
                 command_executor=self.appium_server_url,
                 options=options
             )
             self.touch_action = TouchAction(self.driver)
-            print("Appium驱动启动成功")
+            logger.info("Appium驱动启动成功")
             return self.driver
         except Exception as e:
-            print(f"驱动启动失败: {str(e)}")
+            logger.warning(f"驱动启动失败: {str(e)}")
             return None
 
     def quit_driver(self):
         """退出驱动"""
         if self.driver:
             self.driver.quit()
-            print("Appium驱动已退出")
+            logger.debug("Appium驱动已退出")
+
+    def start_app(self, app_package, app_activity):
+        try:
+            if self.driver:
+                subprocess.run(
+                    ['adb', 'shell', 'am', 'force-stop', app_package]
+                )
+                time.sleep(3)
+                subprocess.run(
+                    ['adb', 'shell', 'am', 'start', '-n', f'{app_package}/{app_activity}']
+                )
+                logger.info(f'{app_package}应用启动')
+        except Exception as e:
+            logger.warning(f'{app_package}应用启动失败。错误信息：{e}')
+
+    def stop_app(self, app_package):
+        try:
+            if self.driver:
+                subprocess.run(
+                    ['adb', 'shell', 'am', 'force-stop', app_package]
+                )
+                logger.info(f'{app_package}应用停止')
+        except Exception as e:
+            logger.warning(f'{app_package}应用停止失败。错误信息：{e}')
 
     def find_element(self, locator, timeout=10):
         """
@@ -60,33 +89,36 @@ class AndroidAutomationTool:
             print(f"元素查找成功: {locator}")
             return element
         except TimeoutException:
-            print(f"元素查找超时: {locator}")
+            logger.warning(f"元素查找超时: {locator}")
             return None
 
-    def click_element(self, locator, timeout=10):
+    def click_element(self, locator, timeout=10, loading_time=1):
         """
         点击元素
         :param locator: 定位器元组
         :param timeout: 超时时间
+        :param loading_time: 页面加载时间
         :return: 操作是否成功
         """
         element = self.find_element(locator, timeout)
         if element:
             try:
                 element.click()
+                time.sleep(loading_time)
                 print(f"元素点击成功: {locator}")
                 return True
             except Exception as e:
-                print(f"元素点击失败: {str(e)}")
+                logger.warning(f"元素点击失败: {str(e)}")
                 return False
         return False
 
-    def send_keys(self, locator, text, timeout=10):
+    def send_keys(self, locator, text, timeout=10, loading_time=1):
         """
         输入文本
         :param locator: 定位器元组
         :param text: 要输入的文本
         :param timeout: 超时时间
+        :param loading_time: 页面加载时间
         :return: 操作是否成功
         """
         element = self.find_element(locator, timeout)
@@ -94,10 +126,11 @@ class AndroidAutomationTool:
             try:
                 element.clear()
                 element.send_keys(text)
+                time.sleep(loading_time)
                 print(f"文本输入成功: {text}")
                 return True
             except Exception as e:
-                print(f"文本输入失败: {str(e)}")
+                logger.warning(f"文本输入失败: {str(e)}")
                 return False
         return False
 
@@ -115,7 +148,7 @@ class AndroidAutomationTool:
                 print(f"获取文本成功: {text}")
                 return text
             except Exception as e:
-                print(f"获取文本失败: {str(e)}")
+                logger.warning(f"获取文本失败: {str(e)}")
                 return None
         return None
 
@@ -133,7 +166,7 @@ class AndroidAutomationTool:
             print(f"元素可见: {locator}")
             return True
         except TimeoutException:
-            print(f"元素不可见: {locator}")
+            logger.warning(f"元素不可见: {locator}")
             return False
 
     # 滑动和手势操作方法
@@ -152,7 +185,7 @@ class AndroidAutomationTool:
             print(f"滑动操作: 从({start_x}, {start_y})到({end_x}, {end_y})")
             return True
         except Exception as e:
-            print(f"滑动操作失败: {str(e)}")
+            logger.warning(f"滑动操作失败: {str(e)}")
             return False
 
     def swipe_up(self, duration=800):
@@ -165,7 +198,7 @@ class AndroidAutomationTool:
             end_y = size['height'] * 0.2
             return self.swipe(start_x, start_y, end_x, end_y, duration)
         except Exception as e:
-            print(f"向上滑动失败: {str(e)}")
+            logger.warning(f"向上滑动失败: {str(e)}")
             return False
 
     def swipe_down(self, duration=800):
@@ -178,7 +211,7 @@ class AndroidAutomationTool:
             end_y = size['height'] * 0.8
             return self.swipe(start_x, start_y, end_x, end_y, duration)
         except Exception as e:
-            print(f"向下滑动失败: {str(e)}")
+            logger.warning(f"向下滑动失败: {str(e)}")
             return False
 
     def swipe_left(self, duration=800):
@@ -191,7 +224,7 @@ class AndroidAutomationTool:
             end_y = size['height'] * 0.5
             return self.swipe(start_x, start_y, end_x, end_y, duration)
         except Exception as e:
-            print(f"向左滑动失败: {str(e)}")
+            logger.warning(f"向左滑动失败: {str(e)}")
             return False
 
     def swipe_right(self, duration=800):
@@ -204,7 +237,7 @@ class AndroidAutomationTool:
             end_y = size['height'] * 0.5
             return self.swipe(start_x, start_y, end_x, end_y, duration)
         except Exception as e:
-            print(f"向右滑动失败: {str(e)}")
+            logger.warning(f"向右滑动失败: {str(e)}")
             return False
 
     def scroll_to_element(self, start_locator, end_locator):
@@ -223,7 +256,7 @@ class AndroidAutomationTool:
                 return True
             return False
         except Exception as e:
-            print(f"滚动操作失败: {str(e)}")
+            logger.warning(f"滚动操作失败: {str(e)}")
             return False
 
     def drag_and_drop(self, source_locator, target_locator):
@@ -242,7 +275,7 @@ class AndroidAutomationTool:
                 return True
             return False
         except Exception as e:
-            print(f"拖拽操作失败: {str(e)}")
+            logger.warning(f"拖拽操作失败: {str(e)}")
             return False
 
     def long_press(self, locator, duration=1000):
@@ -260,7 +293,7 @@ class AndroidAutomationTool:
                 return True
             return False
         except Exception as e:
-            print(f"长按操作失败: {str(e)}")
+            logger.warning(f"长按操作失败: {str(e)}")
             return False
 
     def tap(self, x, y, duration=500):
@@ -276,7 +309,7 @@ class AndroidAutomationTool:
             print(f"坐标点击: ({x}, {y})")
             return True
         except Exception as e:
-            print(f"坐标点击失败: {str(e)}")
+            logger.warning(f"坐标点击失败: {str(e)}")
             return False
 
     def tap_element(self, locator, duration=500):
@@ -296,7 +329,7 @@ class AndroidAutomationTool:
                 return self.tap(x, y, duration)
             return False
         except Exception as e:
-            print(f"元素点击失败: {str(e)}")
+            logger.warning(f"元素点击失败: {str(e)}")
             return False
 
     def pinch(self, locator=None, percent=200, steps=50):
@@ -317,7 +350,7 @@ class AndroidAutomationTool:
                 print("捏合操作(屏幕)")
             return True
         except Exception as e:
-            print(f"捏合操作失败: {str(e)}")
+            logger.warning(f"捏合操作失败: {str(e)}")
             return False
 
     def zoom(self, locator=None, percent=200, steps=50):
@@ -338,7 +371,7 @@ class AndroidAutomationTool:
                 print("放大操作(屏幕)")
             return True
         except Exception as e:
-            print(f"放大操作失败: {str(e)}")
+            logger.warning(f"放大操作失败: {str(e)}")
             return False
 
     def multi_touch_zoom(self, element=None):
@@ -373,7 +406,7 @@ class AndroidAutomationTool:
             print("多点触控放大操作完成")
             return True
         except Exception as e:
-            print(f"多点触控放大失败: {str(e)}")
+            logger.warning(f"多点触控放大失败: {str(e)}")
             return False
 
     def multi_touch_pinch(self, element=None):
@@ -408,7 +441,7 @@ class AndroidAutomationTool:
             print("多点触控捏合操作完成")
             return True
         except Exception as e:
-            print(f"多点触控捏合失败: {str(e)}")
+            logger.warning(f"多点触控捏合失败: {str(e)}")
             return False
 
     # 系统操作
@@ -427,7 +460,7 @@ class AndroidAutomationTool:
             print(f"按键操作: {keycode}")
             return True
         except Exception as e:
-            print(f"按键操作失败: {str(e)}")
+            logger.warning(f"按键操作失败: {str(e)}")
             return False
 
     def hide_keyboard(self):
@@ -437,7 +470,7 @@ class AndroidAutomationTool:
             print("键盘已隐藏")
             return True
         except Exception as e:
-            print(f"隐藏键盘失败: {str(e)}")
+            logger.warning(f"隐藏键盘失败: {str(e)}")
             return False
 
     def get_window_size(self):
@@ -447,7 +480,7 @@ class AndroidAutomationTool:
             print(f"窗口尺寸: {size}")
             return size
         except Exception as e:
-            print(f"获取窗口尺寸失败: {str(e)}")
+            logger.warning(f"获取窗口尺寸失败: {str(e)}")
             return None
 
     # 断言方法 - 所有断言方法只返回True或False
@@ -509,7 +542,7 @@ class AndroidAutomationTool:
             if filename is None:
                 filename = f"screenshot_{int(time.time())}.png"
 
-            screenshot_data = self.driver.get_screenshot_as_file(filename)
+            screenshot_data = self.driver.get_screenshot_as_file(get_path('reports', 'screenshots', filename))
             print(f"截图已保存: {filename}")
             return screenshot_data
         except Exception as e:

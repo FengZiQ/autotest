@@ -18,7 +18,7 @@ class AndroidTestExecutor:
         """
         self.android_tool = android_tool
         self.test_results = []
-        logger.info("Android测试执行器初始化完成")
+        logger.debug("Android测试执行器初始化完成")
 
     def load_test_case(self, json_file_path: str) -> List[Dict[str, Any]]:
         """
@@ -30,7 +30,6 @@ class AndroidTestExecutor:
             full_path = get_path('tests_data', 'Android', json_file_path)
             with open(full_path, 'r', encoding='utf-8') as file:
                 test_case = json.load(file)
-            logger.info(f"测试用例加载成功: {json_file_path}")
             return test_case
         except Exception as e:
             logger.error(f"加载测试用例失败: {str(e)}")
@@ -72,6 +71,7 @@ class AndroidTestExecutor:
             'step_number': step.get('step_number', '0'),
             'action': step.get('action', '点击'),
             'send_keys': step.get('send_keys', ''),
+            'loading_time': step.get('loading_time', 1),
             'action_success': False,
             'assertions': [],
             'error': None
@@ -83,15 +83,26 @@ class AndroidTestExecutor:
             locator_value = step.get('locator', '')
             locator = (locator_by, locator_value)
 
-            logger.info(f"执行步骤: {step_result['step_name']} - 定位器: {locator}")
+            logger.info(f"执行第{step_result['step_number']}步【{step_result['step_name']}】")
+            if locator_value:
+                logger.info(f"定位器: {locator}")
 
             # 执行点击操作（根据您的JSON结构，默认是点击操作）
             # 如果需要支持更多操作类型，可以在这里扩展
             action_success = None
             if step_result.get('action') == '点击':
-                action_success = self.android_tool.click_element(locator)
+                action_success = self.android_tool.click_element(
+                    locator=locator,
+                    loading_time=step_result.get('loading_time')
+                )
             elif step_result.get('action') == '输入':
-                action_success = self.android_tool.send_keys(locator, step_result.get('send_keys'))
+                action_success = self.android_tool.send_keys(
+                    locator=locator,
+                    text=step_result.get('send_keys'),
+                    loading_time=step_result.get('loading_time')
+                )
+            elif step_result.get('action') == '按返回键':
+                action_success = self.android_tool.back()
             step_result['action_success'] = action_success
 
             if not action_success:
@@ -103,11 +114,12 @@ class AndroidTestExecutor:
 
             # 执行断言验证
             expected_results = step.get('expected_results', [])
-            for i, assertion in enumerate(expected_results):
-                assertion_result = self.execute_assertion(assertion)
-                step_result['assertions'].append(assertion_result)
+            if expected_results:
+                for i, assertion in enumerate(expected_results):
+                    assertion_result = self.execute_assertion(assertion)
+                    step_result['assertions'].append(assertion_result)
 
-            logger.info(f"步骤 {step_result['step_name']} 执行完成")
+            logger.info(f"步骤 【{step_result['step_name']}】 执行完成")
 
         except Exception as e:
             step_result['error'] = str(e)
@@ -221,6 +233,7 @@ class AndroidTestExecutor:
             logger.error(traceback.format_exc())
             test_case_result['overall_success'] = False
             test_case_result['error'] = str(e)
+        logger.debug(f'测试用例 {json_file_path} 执行结果: {test_case_result}')
 
         return test_case_result
 

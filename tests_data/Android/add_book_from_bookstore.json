@@ -21,7 +21,7 @@
     },
     {
         "step_name": "点击排行",
-        "step_number": "1",
+        "step_number": "2",
         "locator_by": "AppiumBy.XPATH",
         "locator": "//android.widget.TextView[@resource-id=\"com.netease.pris:id/tv_category\" and @text=\"排行\"]",
         "expected_results": [
@@ -31,5 +31,10 @@
                 "locator": "//androidx.recyclerview.widget.RecyclerView[@resource-id=\"com.netease.pris:id/recyclerview\"]/android.widget.RelativeLayout[1]"
             }
         ]
+    },
+    {
+        "step_name": "返回",
+        "step_number": "3",
+        "action": "按返回键"
     }
 ]

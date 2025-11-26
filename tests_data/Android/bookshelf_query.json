@@ -1,0 +1,54 @@
+[
+    {
+        "step_name": "点击书架按钮",
+        "step_number": "1",
+        "locator_by": "AppiumBy.XPATH",
+        "locator": "//android.widget.TextView[@resource-id=\"com.netease.pris:id/title\" and @text=\"书架\"]",
+        "action": "点击"
+    },
+    {
+        "step_name": "点击放大镜按钮",
+        "step_number": "2",
+        "locator_by": "AppiumBy.ID",
+        "locator": "com.netease.pris:id/search_btn",
+        "action": "点击"
+    },
+    {
+        "step_name": "输入书名",
+        "step_number": "3",
+        "locator_by": "AppiumBy.ID",
+        "locator": "com.netease.pris:id/custom_search_content",
+        "action": "输入",
+        "send_keys": "都市沉浮",
+        "loading_time": 2
+    },
+    {
+        "step_name": "点击查询结果",
+        "step_number": "4",
+        "locator_by": "AppiumBy.XPATH",
+        "locator": "//android.widget.TextView[@resource-id=\"com.netease.pris:id/search_text\" and @text=\"都市沉浮\"]",
+        "action": "点击",
+        "expected_results": [
+            {
+                "assert_form": "assert_element_present",
+                "locator_by": "AppiumBy.ID",
+                "locator": "com.netease.pris:id/info_btread"
+            }
+        ]
+    },
+    {
+        "step_name": "返回",
+        "step_number": "5",
+        "action": "按返回键"
+    },
+    {
+        "step_name": "返回",
+        "step_number": "6",
+        "action": "按返回键"
+    },
+    {
+        "step_name": "返回",
+        "step_number": "6",
+        "action": "按返回键"
+    }
+]

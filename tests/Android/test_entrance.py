@@ -9,4 +9,7 @@ class TestExecute:
     @pytest.mark.parametrize("case_data", test_plan.get('smoke'))
     def test_execute_smoke_cases(self, netease_pris, case_data):
         # 执行测试用例
-        netease_pris.execute_test_case(case_data)
+        case_result = netease_pris.execute_test_case(case_data)
+
+        assert case_result.get('failed_steps') == 0
+
