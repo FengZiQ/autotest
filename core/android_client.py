@@ -97,14 +97,14 @@ class AndroidAutomationTool:
         点击元素
         :param locator: 定位器元组
         :param timeout: 超时时间
-        :param loading_time: 页面加载时间
+        :param loading_time: 页面完成加载时间
         :return: 操作是否成功
         """
         element = self.find_element(locator, timeout)
         if element:
             try:
-                element.click()
                 time.sleep(loading_time)
+                element.click()
                 print(f"元素点击成功: {locator}")
                 return True
             except Exception as e:
@@ -112,13 +112,13 @@ class AndroidAutomationTool:
                 return False
         return False
 
-    def send_keys(self, locator, text, timeout=10, loading_time=1):
+    def send_keys(self, locator, text, timeout=10, loading_time=0.5):
         """
         输入文本
         :param locator: 定位器元组
         :param text: 要输入的文本
         :param timeout: 超时时间
-        :param loading_time: 页面加载时间
+        :param loading_time: 输入文本后触发UI页面变化加载时间
         :return: 操作是否成功
         """
         element = self.find_element(locator, timeout)

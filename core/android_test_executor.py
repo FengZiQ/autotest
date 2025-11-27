@@ -2,6 +2,7 @@
 import json
 import logging
 import traceback
+from datetime import datetime
 from typing import Dict, List, Any
 from appium.webdriver.common.appiumby import AppiumBy
 from utils.path_util import get_path
@@ -60,10 +61,11 @@ class AndroidTestExecutor:
             logger.warning(f"未知的定位方式: {locator_by_str}，默认使用XPATH")
             return AppiumBy.XPATH
 
-    def execute_step(self, step: Dict[str, Any]) -> Dict[str, Any]:
+    def execute_step(self, step: Dict[str, Any], case_name: str) -> Dict[str, Any]:
         """
         执行单个测试步骤
         :param step: 测试步骤字典
+        :param case_name: 测试用例名称
         :return: 执行结果
         """
         step_result = {
@@ -71,11 +73,13 @@ class AndroidTestExecutor:
             'step_number': step.get('step_number', '0'),
             'action': step.get('action', '点击'),
             'send_keys': step.get('send_keys', ''),
-            'loading_time': step.get('loading_time', 1),
+            'loading_time': step.get('loading_time', 0.5),
             'action_success': False,
             'assertions': [],
+            'step_screen': None,
             'error': None
         }
+        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         try:
             # 构建定位器
@@ -109,7 +113,10 @@ class AndroidTestExecutor:
                 step_result['error'] = f"点击操作失败: {locator}"
                 logger.warning(f"步骤 {step_result['step_name']} 执行失败")
                 # 失败时截图
-                self.android_tool.take_screenshot(f"step_{step_result['step_number']}_fail.png")
+                if self.android_tool.take_screenshot(
+                    f"{case_name}_step_{step_result['step_number']}_fail_{current_time}.png"
+                ):
+                    step_result['step_screen'] = f"{case_name}_step_{step_result['step_number']}_fail_{current_time}.png"
                 return step_result
 
             # 执行断言验证
@@ -119,6 +126,10 @@ class AndroidTestExecutor:
                     assertion_result = self.execute_assertion(assertion)
                     step_result['assertions'].append(assertion_result)
 
+                # 断言结束后截图保留测试结果
+                if self.android_tool.take_screenshot(f"{case_name}_测试结果_{current_time}.png"):
+                    step_result['step_screen'] = f"{case_name}_测试结果_{current_time}.png"
+
             logger.info(f"步骤 【{step_result['step_name']}】 执行完成")
 
         except Exception as e:
@@ -126,7 +137,10 @@ class AndroidTestExecutor:
             logger.error(f"执行步骤时发生异常: {str(e)}")
             logger.error(traceback.format_exc())
             # 异常时截图
-            self.android_tool.take_screenshot(f"step_{step_result['step_number']}_error.png")
+            if self.android_tool.take_screenshot(
+                f"{case_name}_step_{step_result['step_number']}_error_{current_time}.png"
+            ):
+                step_result['step_screen'] = f"{case_name}_step_{step_result['step_number']}_error_{current_time}.png"
 
         return step_result
 
@@ -172,8 +186,6 @@ class AndroidTestExecutor:
 
             if not result:
                 logger.warning(f"断言失败: {assert_method_name} - 定位器: {locator}")
-                # 断言失败时截图
-                self.android_tool.take_screenshot(f"assertion_fail_{assert_method_name}.png")
 
         except Exception as e:
             assertion_result['error'] = str(e)
@@ -189,7 +201,9 @@ class AndroidTestExecutor:
         :param json_file_path: JSON测试用例文件路径
         :return: 测试结果汇总
         """
-        logger.info(f"开始执行测试用例: {json_file_path}")
+        case_name = json_file_path[:-5]
+
+        logger.info(f"开始执行测试用例: {case_name}")
 
         test_case_result = {
             'test_case': json_file_path,
@@ -207,7 +221,7 @@ class AndroidTestExecutor:
 
             # 执行每个步骤
             for step in test_steps:
-                step_result = self.execute_step(step)
+                step_result = self.execute_step(step, case_name)
                 test_case_result['step_results'].append(step_result)
 
                 # 统计成功/失败的步骤
@@ -229,11 +243,11 @@ class AndroidTestExecutor:
                                f"失败: {test_case_result['failed_steps']}")
 
         except Exception as e:
-            logger.error(f"执行测试用例时发生异常: {str(e)}")
+            logger.error(f"执行测试用例{case_name}时发生异常: {str(e)}")
             logger.error(traceback.format_exc())
             test_case_result['overall_success'] = False
             test_case_result['error'] = str(e)
-        logger.debug(f'测试用例 {json_file_path} 执行结果: {test_case_result}')
+        logger.debug(f'测试用例 {case_name} 执行结果: {test_case_result}')
 
         return test_case_result
 
@@ -300,10 +314,10 @@ if __name__ == "__main__":
         executor = AndroidTestExecutor(automation_tool)
 
         # 执行测试用例
-        result = executor.execute_test_case('add_book_from_bookstore.json')
+        test_result = executor.execute_test_case('add_book_from_bookstore.json')
 
         # 生成并打印报告
-        report = executor.generate_report(result)
+        report = executor.generate_report(test_result)
         print(report)
 
         # 保存报告到文件
