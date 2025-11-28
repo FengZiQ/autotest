@@ -99,13 +99,17 @@ def pytest_runtest_makereport(item, call):
                 for screenshot_info in step_screenshots:
                     if os.path.exists(screenshot_info):
                         # 添加截图到报告extras
-                        report_extras.append(
-                            extras.image(screenshot_info, name=screenshot_info)
-                        )
-
-                        # 没有文件服务器将图片直接以base64嵌入报告中
                         # report_extras.append(
-                        #     extras.html(image_html_content(screenshot_info))
+                        #     extras.image(screenshot_info, name=screenshot_info)
                         # )
+
+                        # 以URL形式嵌入截图
+                        screenshot_name = screenshot_info.split('/')[-1]
+                        report_extras.append(
+                            extras.url(
+                                content=f'http://localhost:63342/autotest/reports/screenshots/{screenshot_name}',
+                                name=f'<br>{screenshot_name}<br>'
+                            )
+                        )
 
     report.extras = report_extras
