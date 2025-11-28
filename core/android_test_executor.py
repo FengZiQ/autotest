@@ -107,16 +107,25 @@ class AndroidTestExecutor:
                 )
             elif step_result.get('action') == '按返回键':
                 action_success = self.android_tool.back()
+            elif step_result.get('action') == '滑动向上':
+                action_success = self.android_tool.swipe_up()
+            elif step_result.get('action') == '滑动向下':
+                action_success = self.android_tool.swipe_down()
+            elif step_result.get('action') == '滑动向左':
+                action_success = self.android_tool.swipe_left()
+            elif step_result.get('action') == '滑动向右':
+                action_success = self.android_tool.swipe_right()
+
             step_result['action_success'] = action_success
 
             if not action_success:
                 step_result['error'] = f"点击操作失败: {locator}"
                 logger.warning(f"步骤 {step_result['step_name']} 执行失败")
-                # 失败时截图
-                if self.android_tool.take_screenshot(
-                    f"{case_name}_step_{step_result['step_number']}_fail_{current_time}.png"
-                ):
-                    step_result['step_screen'] = f"{case_name}_step_{step_result['step_number']}_fail_{current_time}.png"
+
+                # 失败截图
+                step_result['step_screen'] = f"{case_name}_step_{step_result['step_number']}_fail_{current_time}.png"
+                self.android_tool.take_screenshot(step_result['step_screen'])
+
                 return step_result
 
             # 执行断言验证
@@ -126,9 +135,10 @@ class AndroidTestExecutor:
                     assertion_result = self.execute_assertion(assertion)
                     step_result['assertions'].append(assertion_result)
 
-                # 断言结束后截图保留测试结果
-                if self.android_tool.take_screenshot(f"{case_name}_测试结果_{current_time}.png"):
-                    step_result['step_screen'] = f"{case_name}_测试结果_{current_time}.png"
+                # 断言结束后截图
+                step_result[
+                    'step_screen'] = f"{case_name}_step_{step_result['step_number']}_result_{current_time}.png"
+                self.android_tool.take_screenshot(step_result['step_screen'])
 
             logger.info(f"步骤 【{step_result['step_name']}】 执行完成")
 
@@ -136,11 +146,10 @@ class AndroidTestExecutor:
             step_result['error'] = str(e)
             logger.error(f"执行步骤时发生异常: {str(e)}")
             logger.error(traceback.format_exc())
-            # 异常时截图
-            if self.android_tool.take_screenshot(
-                f"{case_name}_step_{step_result['step_number']}_error_{current_time}.png"
-            ):
-                step_result['step_screen'] = f"{case_name}_step_{step_result['step_number']}_error_{current_time}.png"
+
+            # 异常截图
+            step_result['step_screen'] = f"{case_name}_step_{step_result['step_number']}_error_{current_time}.png"
+            self.android_tool.take_screenshot(step_result['step_screen'])
 
         return step_result
 
@@ -251,40 +260,6 @@ class AndroidTestExecutor:
 
         return test_case_result
 
-    def generate_report(self, test_case_result: Dict[str, Any]) -> str:
-        """
-        生成测试报告
-        :param test_case_result: 测试结果
-        :return: 报告字符串
-        """
-        report = []
-        report.append("=" * 50)
-        report.append("Android自动化测试报告")
-        report.append("=" * 50)
-        report.append(f"测试用例: {test_case_result['test_case']}")
-        report.append(f"总步骤数: {test_case_result['total_steps']}")
-        report.append(f"通过步骤: {test_case_result['passed_steps']}")
-        report.append(f"失败步骤: {test_case_result['failed_steps']}")
-        report.append(f"整体结果: {'通过' if test_case_result['overall_success'] else '失败'}")
-        report.append("-" * 50)
-
-        # 详细步骤结果
-        for step_result in test_case_result['step_results']:
-            report.append(f"步骤 {step_result['step_number']}: {step_result['step_name']}")
-            report.append(f"  操作结果: {'成功' if step_result['action_success'] else '失败'}")
-
-            if step_result['error']:
-                report.append(f"  错误信息: {step_result['error']}")
-
-            for assertion in step_result['assertions']:
-                status = "通过" if assertion['success'] else "失败"
-                report.append(f"  断言 {assertion['assert_form']}: {status}")
-                if assertion['error']:
-                    report.append(f"    错误: {assertion['error']}")
-
-        report.append("=" * 50)
-        return "\n".join(report)
-
 
 # 使用示例
 if __name__ == "__main__":
@@ -315,14 +290,6 @@ if __name__ == "__main__":
 
         # 执行测试用例
         test_result = executor.execute_test_case('add_book_from_bookstore.json')
-
-        # 生成并打印报告
-        report = executor.generate_report(test_result)
-        print(report)
-
-        # 保存报告到文件
-        with open(get_path('reports', 'logs', 'android_test_report.txt'), 'w', encoding='utf-8') as f:
-            f.write(report)
 
     finally:
         # 退出驱动

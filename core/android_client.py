@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import time
 import logging
 import subprocess
@@ -536,15 +537,20 @@ class AndroidAutomationTool:
         """
         截取屏幕截图
         :param filename: 文件名
-        :return: 截图数据或None
+        :return: 截图文件路径或None
         """
         try:
             if filename is None:
                 filename = f"screenshot_{int(time.time())}.png"
 
-            screenshot_data = self.driver.get_screenshot_as_file(get_path('reports', 'screenshots', filename))
-            print(f"截图已保存: {filename}")
-            return screenshot_data
+            # 确保截图目录存在
+            screenshot_dir = get_path('reports', 'screenshots')
+            os.makedirs(screenshot_dir, exist_ok=True)
+
+            screenshot_path = os.path.join(screenshot_dir, filename)
+            self.driver.get_screenshot_as_file(screenshot_path)
+            print(f"截图已保存: {screenshot_path}")
+            return screenshot_path
         except Exception as e:
             print(f"截图失败: {str(e)}")
             return None
