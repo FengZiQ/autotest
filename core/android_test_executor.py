@@ -87,9 +87,9 @@ class AndroidTestExecutor:
             locator_value = step.get('locator', '')
             locator = (locator_by, locator_value)
 
-            logger.info(f"执行第{step_result['step_number']}步—>{step_result['step_name']}")
+            logger.info(f"执行第{step_result['step_number']}步——>{step_result['step_name']}")
             if locator_value:
-                logger.info(f"定位器: {locator}")
+                logger.debug(f"定位器: {locator}")
 
             # 执行点击操作（根据您的JSON结构，默认是点击操作）
             # 如果需要支持更多操作类型，可以在这里扩展
@@ -257,11 +257,9 @@ class AndroidTestExecutor:
 
             # 记录测试结果
             if test_case_result['overall_success']:
-                logger.info(f"测试用例执行成功: {json_file_path}")
+                logger.info(f"测试用例【{case_name}】执行成功.")
             else:
-                logger.warning(f"测试用例执行失败: {json_file_path} - "
-                               f"通过: {test_case_result['passed_steps']}/"
-                               f"失败: {test_case_result['failed_steps']}")
+                logger.warning(f"测试用例【{case_name}】执行失败!")
 
         except Exception as e:
             logger.error(f"执行测试用例{case_name}时发生异常: {str(e)}")
