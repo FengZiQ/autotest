@@ -19,7 +19,8 @@ class AndroidTestExecutor:
         """
         self.android_tool = android_tool
         self.test_results = []
-        logger.debug("Android测试执行器初始化完成")
+        self.step_screenshots = []
+        # logger.debug("Android测试执行器初始化完成")
 
     def load_test_case(self, json_file_path: str) -> List[Dict[str, Any]]:
         """
@@ -76,7 +77,6 @@ class AndroidTestExecutor:
             'loading_time': step.get('loading_time', 0.5),
             'action_success': False,
             'assertions': [],
-            'step_screen': None,
             'error': None
         }
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -123,8 +123,11 @@ class AndroidTestExecutor:
                 logger.warning(f"步骤 {step_result['step_name']} 执行失败")
 
                 # 失败截图
-                step_result['step_screen'] = f"{case_name}_step_{step_result['step_number']}_fail_{current_time}.png"
-                self.android_tool.take_screenshot(step_result['step_screen'])
+                self.step_screenshots.append(
+                    self.android_tool.take_screenshot(
+                        f"{case_name}第{step_result['step_number']}步{step_result['step_name']}_失败_{current_time}.png"
+                    )
+                )
 
                 return step_result
 
@@ -136,9 +139,11 @@ class AndroidTestExecutor:
                     step_result['assertions'].append(assertion_result)
 
                 # 断言结束后截图
-                step_result[
-                    'step_screen'] = f"{case_name}_step_{step_result['step_number']}_result_{current_time}.png"
-                self.android_tool.take_screenshot(step_result['step_screen'])
+                self.step_screenshots.append(
+                    self.android_tool.take_screenshot(
+                        f"{case_name}第{step_result['step_number']}步{step_result['step_name']}的断言_{current_time}.png"
+                    )
+                )
 
             logger.info(f"步骤 【{step_result['step_name']}】 执行完成")
 
@@ -148,10 +153,16 @@ class AndroidTestExecutor:
             logger.error(traceback.format_exc())
 
             # 异常截图
-            step_result['step_screen'] = f"{case_name}_step_{step_result['step_number']}_error_{current_time}.png"
-            self.android_tool.take_screenshot(step_result['step_screen'])
+            self.step_screenshots.append(
+                self.android_tool.take_screenshot(
+                    f"{case_name}第{step_result['step_number']}步{step_result['step_name']}的异常_{current_time}.png"
+                )
+            )
 
         return step_result
+
+    def get_step_screenshots(self):
+        return self.step_screenshots
 
     def execute_assertion(self, assertion: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -256,7 +267,7 @@ class AndroidTestExecutor:
             logger.error(traceback.format_exc())
             test_case_result['overall_success'] = False
             test_case_result['error'] = str(e)
-        logger.debug(f'测试用例 {case_name} 执行结果: {test_case_result}')
+        # logger.debug(f'测试用例 {case_name} 执行结果: {test_case_result}')
 
         return test_case_result
 

@@ -543,100 +543,37 @@ class AndroidAutomationTool:
             if filename is None:
                 filename = f"screenshot_{int(time.time())}.png"
 
-            # 确保截图目录存在
-            screenshot_dir = get_path('reports', 'screenshots')
-            os.makedirs(screenshot_dir, exist_ok=True)
-
-            screenshot_path = os.path.join(screenshot_dir, filename)
+            # 截图
+            screenshot_path = get_path('reports', 'screenshots', filename)
             self.driver.get_screenshot_as_file(screenshot_path)
-            print(f"截图已保存: {screenshot_path}")
+
             return screenshot_path
         except Exception as e:
-            print(f"截图失败: {str(e)}")
+            logger.warning(f"截图失败: {str(e)}")
             return None
 
     def back(self):
         """按返回键"""
         try:
             self.driver.back()
-            print("执行返回操作")
             return True
         except Exception as e:
-            print(f"返回操作失败: {str(e)}")
+            logger.warning(f"返回操作失败: {str(e)}")
             return False
 
     def get_current_activity(self):
         """获取当前Activity"""
         try:
             activity = self.driver.current_activity
-            print(f"当前Activity: {activity}")
             return activity
         except Exception as e:
-            print(f"获取Activity失败: {str(e)}")
+            logger.warning(f"获取Activity失败: {str(e)}")
             return None
 
 
 # 使用示例
 if __name__ == "__main__":
-    # 设备能力配置
-    desired_caps = {
-        'platformName': 'Android',
-        'platformVersion': '12',
-        'deviceName': 'Mumu emulator',
-        'appPackage': 'com.netease.pris',
-        'appActivity': 'com.netease.pris.activity.PRISActivityFlasScreen',
-        'automationName': 'UiAutomator2',
-        'noReset': True,
-        "udid": "emulator-5554"
-    }
+    pass
 
-    # 创建工具实例
-    automation_tool = AndroidAutomationTool()
-
-    try:
-        # 启动驱动
-        driver = automation_tool.setup_driver(desired_caps)
-        if not driver:
-            print("驱动启动失败，退出测试")
-            exit(1)
-
-        # 等待应用启动
-        time.sleep(2)
-
-        # 测试各种手势操作
-        print("=== 测试滑动操作 ===")
-        automation_tool.swipe_up()
-        time.sleep(1)
-        automation_tool.swipe_down()
-        time.sleep(1)
-
-        print("=== 测试长按操作 ===")
-        # 这里需要根据实际APP修改定位器
-        # automation_tool.long_press((AppiumBy.ID, 'some_element_id'))
-
-        print("=== 测试拖拽操作 ===")
-        # 这里需要根据实际APP修改定位器
-        # automation_tool.drag_and_drop(
-        #     (AppiumBy.ID, 'source_element'),
-        #     (AppiumBy.ID, 'target_element')
-        # )
-
-        print("=== 测试多点触控 ===")
-        automation_tool.multi_touch_zoom()
-        time.sleep(1)
-        automation_tool.multi_touch_pinch()
-
-        # 执行断言示例
-        print("=== 测试断言 ===")
-        # 这里需要根据实际APP修改定位器
-        # assert_result = automation_tool.assert_element_present((AppiumBy.ID, 'some_element'))
-        # print(f"最终断言结果: {assert_result}")
-
-        # 截图
-        automation_tool.take_screenshot("gesture_test_result.png")
-
-    finally:
-        # 退出驱动
-        automation_tool.quit_driver()
 
 
