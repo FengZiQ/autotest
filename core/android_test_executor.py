@@ -87,7 +87,7 @@ class AndroidTestExecutor:
             locator_value = step.get('locator', '')
             locator = (locator_by, locator_value)
 
-            logger.info(f"执行第{step_result['step_number']}步【{step_result['step_name']}】")
+            logger.info(f"执行第{step_result['step_number']}步—>{step_result['step_name']}")
             if locator_value:
                 logger.info(f"定位器: {locator}")
 
@@ -125,7 +125,7 @@ class AndroidTestExecutor:
                 # 失败截图
                 self.step_screenshots.append(
                     self.android_tool.take_screenshot(
-                        f"{case_name}第{step_result['step_number']}步{step_result['step_name']}_失败_{current_time}.png"
+                        f"第{step_result['step_number']}步{step_result['step_name']}失败截图_{current_time}.png"
                     )
                 )
 
@@ -141,11 +141,9 @@ class AndroidTestExecutor:
                 # 断言结束后截图
                 self.step_screenshots.append(
                     self.android_tool.take_screenshot(
-                        f"{case_name}第{step_result['step_number']}步{step_result['step_name']}的断言_{current_time}.png"
+                        f"第{step_result['step_number']}步{step_result['step_name']}的断言截图_{current_time}.png"
                     )
                 )
-
-            logger.info(f"步骤 【{step_result['step_name']}】 执行完成")
 
         except Exception as e:
             step_result['error'] = str(e)
@@ -155,7 +153,7 @@ class AndroidTestExecutor:
             # 异常截图
             self.step_screenshots.append(
                 self.android_tool.take_screenshot(
-                    f"{case_name}第{step_result['step_number']}步{step_result['step_name']}的异常_{current_time}.png"
+                    f"第{step_result['step_number']}步{step_result['step_name']}的异常截图_{current_time}.png"
                 )
             )
 
@@ -205,12 +203,15 @@ class AndroidTestExecutor:
             assertion_result['actual'] = "断言通过" if result else "断言失败"
 
             if not result:
-                logger.warning(f"断言失败: {assert_method_name} - 定位器: {locator}")
+                logger.info("断言失败!")
+                logger.info(f"断言方式：{assert_method_name} - 定位器: {locator}")
+            else:
+                logger.info(f"断言成功：{assertion.get('assert_describe', '缺失断言描述参数<assert_describe>')}")
 
         except Exception as e:
             assertion_result['error'] = str(e)
             assertion_result['success'] = False
-            logger.error(f"执行断言时发生异常: {str(e)}")
+            logger.error(f"断言执行! 发生异常: <{str(e)}>")
             logger.error(traceback.format_exc())
 
         return assertion_result

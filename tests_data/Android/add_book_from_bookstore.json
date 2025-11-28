@@ -7,12 +7,8 @@
         "action": "点击",
         "expected_results": [
             {
-                "assert_form": "assert_element_present",
-                "locator_by": "AppiumBy.XPATH",
-                "locator": "(//android.widget.ImageView[@resource-id=\"com.netease.pris:id/iv_cover\"])[1]"
-            },
-            {
                 "assert_form": "assert_text_equals",
+                "assert_describe": "页面有排行按钮",
                 "locator_by": "AppiumBy.XPATH",
                 "locator": "//android.widget.TextView[@resource-id=\"com.netease.pris:id/tv_category\" and @text=\"排行\"]",
                 "expected_text": "排行"
@@ -26,9 +22,37 @@
         "locator": "//android.widget.TextView[@resource-id=\"com.netease.pris:id/tv_category\" and @text=\"排行\"]",
         "expected_results": [
             {
-                "assert_form": "assert_element_present",
+                "assert_form": "assert_text_equals",
+                "assert_describe": "页面有人气榜",
                 "locator_by": "AppiumBy.XPATH",
-                "locator": "//androidx.recyclerview.widget.RecyclerView[@resource-id=\"com.netease.pris:id/recyclerview\"]/android.widget.RelativeLayout[1]"
+                "locator": "//android.widget.TextView[@resource-id=\"com.netease.pris:id/tv_name\" and @text=\"人气榜\"]",
+                "expected_text": "人气榜"
+            },
+            {
+                "assert_form": "assert_text_equals",
+                "assert_describe": "页面有畅销榜",
+                "locator_by": "AppiumBy.XPATH",
+                "locator": "//android.widget.TextView[@resource-id=\"com.netease.pris:id/tv_name\" and @text=\"畅销榜\"]",
+                "expected_text": "畅销榜"
+            },
+            {
+                "assert_form": "assert_text_equals",
+                "assert_describe": "页面有新书榜",
+                "locator_by": "AppiumBy.XPATH",
+                "locator": "//android.widget.TextView[@resource-id=\"com.netease.pris:id/tv_name\" and @text=\"新书榜\"]",
+                "expected_text": "新书榜"
+            },{
+                "assert_form": "assert_text_equals",
+                "assert_describe": "页面有免费榜",
+                "locator_by": "AppiumBy.XPATH",
+                "locator": "//android.widget.TextView[@resource-id=\"com.netease.pris:id/tv_name\" and @text=\"免费榜\"]",
+                "expected_text": "免费榜"
+            },{
+                "assert_form": "assert_text_equals",
+                "assert_describe": "页面有完结榜",
+                "locator_by": "AppiumBy.XPATH",
+                "locator": "//android.widget.TextView[@resource-id=\"com.netease.pris:id/tv_name\" and @text=\"完结榜\"]",
+                "expected_text": "完结榜"
             }
         ]
     },

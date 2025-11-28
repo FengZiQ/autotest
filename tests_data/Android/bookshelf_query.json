@@ -20,7 +20,7 @@
         "locator": "com.netease.pris:id/custom_search_content",
         "action": "输入",
         "send_keys": "都市沉浮",
-        "loading_time": 2
+        "loading_time": 3
     },
     {
         "step_name": "点击查询结果",
@@ -28,11 +28,14 @@
         "locator_by": "AppiumBy.XPATH",
         "locator": "//android.widget.TextView[@resource-id=\"com.netease.pris:id/search_text\" and @text=\"都市沉浮\"]",
         "action": "点击",
+        "loading_time": 1,
         "expected_results": [
             {
-                "assert_form": "assert_element_present",
+                "assert_form": "assert_text_equals",
+                "assert_describe": "页面有免费阅读按钮",
                 "locator_by": "AppiumBy.ID",
-                "locator": "com.netease.pris:id/info_btread"
+                "locator": "com.netease.pris:id/info_btread",
+                "expected_text": "免费试读"
             }
         ]
     },
