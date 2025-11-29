@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 from services.platform import TestPlatform
-from flask import Blueprint, render_template, request, jsonify, send_from_directory
+from flask import Blueprint, render_template, request, jsonify, send_from_directory, send_file
 
 # 创建主蓝图
 main_bp = Blueprint('main', __name__)
@@ -66,6 +66,29 @@ def delete_test_case(test_plan, case_name):
 @main_bp.route('/test-execution')
 def test_execution():
     return render_template('test_execution.html')
+
+
+@main_bp.route('/api/download-report')
+def download_report():
+    filename = request.args.get('filename')
+    if not filename:
+        return jsonify({'success': False, 'message': '文件名不能为空'})
+
+    # 获取项目根目录（autotest目录）
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    # 构建正确的报告文件路径
+    report_path = os.path.join(project_root, 'reports', filename)
+
+    print(f"查找报告文件: {report_path}")  # 调试信息
+
+    if not os.path.exists(report_path):
+        return jsonify({'success': False, 'message': f'报告文件不存在: {report_path}'})
+
+    try:
+        return send_file(report_path, as_attachment=True, download_name=filename)
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'下载失败: {str(e)}'})
 
 
 # 执行测试计划

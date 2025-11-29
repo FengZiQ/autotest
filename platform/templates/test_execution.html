@@ -95,6 +95,7 @@ let testCompleted = false;
 let lastLogContent = ''; // 上一次的日志内容
 let sameContentCount = 0; // 连续相同内容的次数
 let currentReportUrl = null; // 当前测试报告URL
+let currentReportFilename = null; // 当前测试报告文件名
 
 // 初始化事件监听
 document.addEventListener('DOMContentLoaded', function() {
@@ -145,6 +146,7 @@ function resetExecutionInfo() {
     document.getElementById('startTime').textContent = '-';
     document.getElementById('reportLink').textContent = '-';
     currentReportUrl = null;
+    currentReportFilename = null;
 }
 
 // 执行测试
@@ -168,6 +170,7 @@ async function executeTests() {
     lastLogContent = '';
     sameContentCount = 0;
     currentReportUrl = null;
+    currentReportFilename = null;
 
     // 停止之前的日志轮询和自动刷新（如果有）
     stopAllPolling();
@@ -277,9 +280,12 @@ async function fetchExecutionStatus() {
                 const selectedPlan = testPlans[testProject].find(plan => plan.value === testPlan);
                 const command = selectedPlan ? selectedPlan.command : `pytest -m ${testPlan}`;
 
-                // 保存报告URL
+                // 保存报告URL和文件名
                 if (data.report_url) {
                     currentReportUrl = data.report_url;
+                    // 从URL中提取文件名（处理Windows路径分隔符）
+                    const urlParts = currentReportUrl.split(/[\\/]/);
+                    currentReportFilename = urlParts[urlParts.length - 1];
                 }
 
                 updateExecutionInfo('执行完成', command,
@@ -332,6 +338,9 @@ async function fetchLog() {
                     // 尝试获取报告URL
                     if (!currentReportUrl && data.report_url) {
                         currentReportUrl = data.report_url;
+                        // 从URL中提取文件名（处理Windows路径分隔符）
+                        const urlParts = currentReportUrl.split(/[\\/]/);
+                        currentReportFilename = urlParts[urlParts.length - 1];
                     }
 
                     // 如果还没有报告URL，尝试从后端获取
@@ -385,6 +394,9 @@ async function tryGetReportUrl() {
 
         if (data.success && data.report_url) {
             currentReportUrl = data.report_url;
+            // 从URL中提取文件名（处理Windows路径分隔符）
+            const urlParts = currentReportUrl.split(/[\\/]/);
+            currentReportFilename = urlParts[urlParts.length - 1];
         }
     } catch (error) {
         console.error('获取报告URL失败:', error);
@@ -423,7 +435,77 @@ function replaceLogDisplay(logContent) {
 // 显示报告链接
 function showReportLink(reportUrl) {
     const reportLinkSpan = document.getElementById('reportLink');
-    reportLinkSpan.innerHTML = `<a href="${reportUrl}" target="_blank" class="report-link">查看测试报告</a>`;
+    reportLinkSpan.innerHTML = `
+        <div class="report-actions">
+            <a href="${reportUrl}" target="_blank" class="report-link">查看测试报告</a>
+            <button class="btn-download-report" onclick="downloadReport()">下载测试报告</button>
+        </div>
+    `;
+}
+
+// 下载测试报告
+async function downloadReport() {
+    if (!currentReportFilename) {
+        showMessage('无法获取报告文件名', 'error');
+        return;
+    }
+
+    try {
+        // 显示下载中状态
+        const downloadBtn = document.querySelector('.btn-download-report');
+        const originalText = downloadBtn.textContent;
+        downloadBtn.textContent = '下载中...';
+        downloadBtn.disabled = true;
+
+        // 清理文件名，移除路径分隔符
+        const cleanFilename = currentReportFilename.replace(/^.*[\\/]/, '');
+
+        // 使用正确的下载API端点
+        const downloadUrl = `/api/download-report?filename=${encodeURIComponent(cleanFilename)}`;
+
+        console.log('下载URL:', downloadUrl);
+
+        const response = await fetch(downloadUrl);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `下载失败: ${response.status} ${response.statusText}`);
+        }
+
+        // 获取文件blob
+        const blob = await response.blob();
+
+        // 创建下载链接
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = cleanFilename;
+
+        document.body.appendChild(a);
+        a.click();
+
+        // 清理
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        // 恢复按钮状态
+        downloadBtn.textContent = originalText;
+        downloadBtn.disabled = false;
+
+        showMessage('测试报告下载成功', 'success');
+
+    } catch (error) {
+        console.error('下载测试报告失败:', error);
+        showMessage(`下载失败: ${error.message}`, 'error');
+
+        // 恢复按钮状态
+        const downloadBtn = document.querySelector('.btn-download-report');
+        if (downloadBtn) {
+            downloadBtn.textContent = '下载测试报告';
+            downloadBtn.disabled = false;
+        }
+    }
 }
 
 // 清空日志
@@ -733,14 +815,50 @@ function showMessage(message, type = 'info') {
     color: #333;
 }
 
+/* 报告操作区域样式 - 修复按钮样式 */
+.report-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
 .report-link {
     color: #007bff;
     text-decoration: none;
     font-weight: bold;
+    padding: 5px 10px;
+    border: 1px solid #007bff;
+    border-radius: 4px;
+    transition: all 0.3s;
+    background-color: white;
 }
 
 .report-link:hover {
-    text-decoration: underline;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-download-report {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.btn-download-report:hover {
+    background-color: #218838;
+}
+
+.btn-download-report:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
 }
 
 .execution-log {
@@ -899,6 +1017,16 @@ function showMessage(message, type = 'info') {
 
     .button-group {
         flex-wrap: wrap;
+    }
+
+    .report-actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .report-link, .btn-download-report {
+        width: 100%;
+        text-align: center;
     }
 }
 </style>
