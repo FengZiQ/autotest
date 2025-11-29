@@ -56,9 +56,7 @@
         <div class="log-header">
             <h3>执行日志 (log_record() 记录)</h3>
             <div class="log-controls">
-                <button id="autoScrollBtn" class="btn btn-small btn-active">自动滚动</button>
                 <button id="copyLogBtn" class="btn btn-small">复制日志</button>
-                <button id="refreshLogBtn" class="btn btn-small">刷新日志</button>
             </div>
         </div>
         <div id="logOutput" class="log-output">
@@ -92,17 +90,18 @@ const testPlans = {
 // 全局变量
 let currentTimestamp = null;
 let logPollingInterval = null;
-let autoScrollEnabled = true;
+let autoRefreshInterval = null;
 let testCompleted = false;
+let lastLogContent = ''; // 上一次的日志内容
+let sameContentCount = 0; // 连续相同内容的次数
+let currentReportUrl = null; // 当前测试报告URL
 
 // 初始化事件监听
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('testProject').addEventListener('change', updateTestPlans);
     document.getElementById('executeBtn').addEventListener('click', executeTests);
     document.getElementById('clearLogBtn').addEventListener('click', clearLog);
-    document.getElementById('autoScrollBtn').addEventListener('click', toggleAutoScroll);
     document.getElementById('copyLogBtn').addEventListener('click', copyLog);
-    document.getElementById('refreshLogBtn').addEventListener('click', manualRefreshLog);
 });
 
 // 更新测试计划选项
@@ -145,6 +144,7 @@ function resetExecutionInfo() {
     document.getElementById('executionCommand').className = 'command-text';
     document.getElementById('startTime').textContent = '-';
     document.getElementById('reportLink').textContent = '-';
+    currentReportUrl = null;
 }
 
 // 执行测试
@@ -165,12 +165,12 @@ async function executeTests() {
 
     // 重置状态
     testCompleted = false;
+    lastLogContent = '';
+    sameContentCount = 0;
+    currentReportUrl = null;
 
-    // 停止之前的日志轮询（如果有）
-    if (logPollingInterval) {
-        clearInterval(logPollingInterval);
-        logPollingInterval = null;
-    }
+    // 停止之前的日志轮询和自动刷新（如果有）
+    stopAllPolling();
 
     // 更新UI状态
     executeBtn.disabled = true;
@@ -213,8 +213,11 @@ async function executeTests() {
             currentTimestamp = data.timestamp;
             addLogEntry('测试已开始在后台执行，正在获取日志...');
 
-            // 开始轮询日志
+            // 开始轮询执行状态
             startLogPolling();
+
+            // 开始自动刷新日志
+            startAutoRefreshLog();
         } else {
             addLogEntry(`执行失败: ${data.message}`, 'error');
             resetUI();
@@ -226,17 +229,39 @@ async function executeTests() {
     }
 }
 
-// 开始轮询日志
+// 开始轮询执行状态
 function startLogPolling() {
     if (logPollingInterval) {
         clearInterval(logPollingInterval);
     }
 
-    logPollingInterval = setInterval(fetchLog, 3000); // 每3秒获取一次日志
+    logPollingInterval = setInterval(fetchExecutionStatus, 3000); // 每3秒获取一次执行状态
 }
 
-// 获取日志内容
-async function fetchLog() {
+// 开始自动刷新日志
+function startAutoRefreshLog() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+
+    autoRefreshInterval = setInterval(fetchLog, 3000); // 每3秒自动刷新一次日志
+}
+
+// 停止所有轮询
+function stopAllPolling() {
+    if (logPollingInterval) {
+        clearInterval(logPollingInterval);
+        logPollingInterval = null;
+    }
+
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+}
+
+// 获取执行状态
+async function fetchExecutionStatus() {
     if (!currentTimestamp) return;
 
     try {
@@ -244,32 +269,6 @@ async function fetchLog() {
         const data = await response.json();
 
         if (data.success) {
-            // 清空日志并显示新内容
-            const logOutput = document.getElementById('logOutput');
-
-            // 移除placeholder
-            if (logOutput.querySelector('.log-placeholder')) {
-                logOutput.innerHTML = '';
-            }
-
-            if (data.log_content) {
-                // 解析日志内容，按行处理
-                const lines = data.log_content.split('\n');
-                const currentContent = logOutput.innerHTML;
-
-                // 只添加新行（简单的去重，实际可能需要更复杂的逻辑）
-                lines.forEach(line => {
-                    if (line.trim() && !currentContent.includes(line)) {
-                        addLogEntry(line);
-                    }
-                });
-
-                // 自动滚动到底部
-                if (autoScrollEnabled) {
-                    logOutput.scrollTop = logOutput.scrollHeight;
-                }
-            }
-
             // 检查测试是否完成
             if (data.completed) {
                 testCompleted = true;
@@ -278,16 +277,21 @@ async function fetchLog() {
                 const selectedPlan = testPlans[testProject].find(plan => plan.value === testPlan);
                 const command = selectedPlan ? selectedPlan.command : `pytest -m ${testPlan}`;
 
-                updateExecutionInfo('执行完成', command,
-                                  document.getElementById('startTime').textContent,
-                                  data.report_url ? '可用' : '生成中');
-
-                // 显示报告链接
+                // 保存报告URL
                 if (data.report_url) {
-                    showReportLink(data.report_url);
+                    currentReportUrl = data.report_url;
                 }
 
-                // 停止轮询
+                updateExecutionInfo('执行完成', command,
+                                  document.getElementById('startTime').textContent,
+                                  currentReportUrl ? '可用' : '生成中');
+
+                // 显示报告链接
+                if (currentReportUrl) {
+                    showReportLink(currentReportUrl);
+                }
+
+                // 停止执行状态轮询
                 if (logPollingInterval) {
                     clearInterval(logPollingInterval);
                     logPollingInterval = null;
@@ -298,9 +302,72 @@ async function fetchLog() {
 
                 addLogEntry('='.repeat(50));
                 addLogEntry('测试执行完成！');
-                if (data.report_url) {
-                    addLogEntry(`测试报告已生成: ${data.report_url}`, 'success');
+                if (currentReportUrl) {
+                    addLogEntry(`测试报告已生成: ${currentReportUrl}`, 'success');
                 }
+            }
+        }
+    } catch (error) {
+        console.error('获取执行状态失败:', error);
+    }
+}
+
+// 获取日志内容
+async function fetchLog() {
+    if (!currentTimestamp) return;
+
+    try {
+        const response = await fetch(`/api/execution-log?timestamp=${encodeURIComponent(currentTimestamp)}`);
+        const data = await response.json();
+
+        if (data.success && data.log_content) {
+            // 检查日志内容是否与上一次相同
+            if (data.log_content === lastLogContent) {
+                sameContentCount++;
+
+                // 如果连续3次内容相同，停止自动刷新并更新状态
+                if (sameContentCount >= 3) {
+                    stopAutoRefresh();
+
+                    // 尝试获取报告URL
+                    if (!currentReportUrl && data.report_url) {
+                        currentReportUrl = data.report_url;
+                    }
+
+                    // 如果还没有报告URL，尝试从后端获取
+                    if (!currentReportUrl) {
+                        await tryGetReportUrl();
+                    }
+
+                    // 更新状态为执行完成
+                    updateExecutionInfo('执行完成',
+                                      document.getElementById('executionCommand').textContent,
+                                      document.getElementById('startTime').textContent,
+                                      currentReportUrl ? '可用' : '生成中');
+
+                    // 显示测试报告链接
+                    if (currentReportUrl) {
+                        showReportLink(currentReportUrl);
+                        addLogEntry('日志内容已连续3次无变化，测试执行完成', 'success');
+                        addLogEntry(`测试报告已生成: ${currentReportUrl}`, 'success');
+                    } else {
+                        addLogEntry('日志内容已连续3次无变化，测试执行完成，但报告生成中...', 'info');
+                    }
+                    return;
+                }
+            } else {
+                // 内容不同，重置计数器
+                sameContentCount = 0;
+                lastLogContent = data.log_content;
+
+                // 更新日志显示 - 完全替换日志内容
+                replaceLogDisplay(data.log_content);
+
+                // 确保状态为执行中且不显示报告
+                updateExecutionInfo('正在执行',
+                                  document.getElementById('executionCommand').textContent,
+                                  document.getElementById('startTime').textContent,
+                                  '-');
             }
         }
     } catch (error) {
@@ -308,12 +375,49 @@ async function fetchLog() {
     }
 }
 
-// 手动刷新日志
-function manualRefreshLog() {
-    if (currentTimestamp) {
-        fetchLog();
-        showMessage('日志已刷新', 'info');
+// 尝试获取报告URL
+async function tryGetReportUrl() {
+    if (!currentTimestamp) return;
+
+    try {
+        const response = await fetch(`/api/get-report-url?timestamp=${encodeURIComponent(currentTimestamp)}`);
+        const data = await response.json();
+
+        if (data.success && data.report_url) {
+            currentReportUrl = data.report_url;
+        }
+    } catch (error) {
+        console.error('获取报告URL失败:', error);
     }
+}
+
+// 停止自动刷新
+function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+}
+
+// 替换日志显示（完全替换内容）
+function replaceLogDisplay(logContent) {
+    const logOutput = document.getElementById('logOutput');
+
+    // 清空现有日志
+    logOutput.innerHTML = '';
+
+    // 解析日志内容，按行处理
+    const lines = logContent.split('\n');
+
+    // 添加所有日志行
+    lines.forEach(line => {
+        if (line.trim()) {
+            addLogEntry(line);
+        }
+    });
+
+    // 自动滚动到底部
+    logOutput.scrollTop = logOutput.scrollHeight;
 }
 
 // 显示报告链接
@@ -326,24 +430,8 @@ function showReportLink(reportUrl) {
 function clearLog() {
     const logOutput = document.getElementById('logOutput');
     logOutput.innerHTML = '<div class="log-placeholder">日志已清空</div>';
-}
-
-// 切换自动滚动
-function toggleAutoScroll() {
-    autoScrollEnabled = !autoScrollEnabled;
-    const btn = document.getElementById('autoScrollBtn');
-
-    if (autoScrollEnabled) {
-        btn.classList.add('btn-active');
-        btn.textContent = '自动滚动 ✓';
-
-        // 立即滚动到底部
-        const logOutput = document.getElementById('logOutput');
-        logOutput.scrollTop = logOutput.scrollHeight;
-    } else {
-        btn.classList.remove('btn-active');
-        btn.textContent = '自动滚动';
-    }
+    lastLogContent = '';
+    sameContentCount = 0;
 }
 
 // 复制日志
@@ -409,8 +497,16 @@ function updateExecutionInfo(status, command, startTime, reportStatus) {
 
     document.getElementById('startTime').textContent = startTime;
 
-    if (reportStatus !== '-') {
-        document.getElementById('reportLink').textContent = reportStatus;
+    // 更新报告状态
+    const reportLinkElement = document.getElementById('reportLink');
+    if (reportStatus === '-') {
+        reportLinkElement.textContent = '-';
+        reportLinkElement.innerHTML = '-';
+    } else if (reportStatus === '可用' && currentReportUrl) {
+        showReportLink(currentReportUrl);
+    } else {
+        reportLinkElement.textContent = reportStatus;
+        reportLinkElement.innerHTML = reportStatus;
     }
 }
 
@@ -471,6 +567,7 @@ function showMessage(message, type = 'info') {
 </script>
 
 <style>
+/* 样式保持不变，与之前相同 */
 .execution-page {
     max-width: 1200px;
     margin: 0 auto;
@@ -559,10 +656,6 @@ function showMessage(message, type = 'info') {
 .btn-small {
     padding: 6px 12px;
     font-size: 12px;
-}
-
-.btn-active {
-    background-color: #28a745 !important;
 }
 
 .execution-info {
