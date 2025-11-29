@@ -81,16 +81,17 @@ def get_test_plans():
 @main_bp.route('/api/execute-test-plan', methods=['POST'])
 def execute_test_plan():
     data = request.json
+    test_project = data.get('test_project')
     test_plan = data.get('test_plan')
 
-    if not test_plan:
-        return jsonify({'success': False, 'message': '请选择测试计划'})
+    if not test_plan or not test_project:
+        return jsonify({'success': False, 'message': '请选择测试项目及计划'})
 
     # 重置状态
     platform.test_completed = False
     platform.test_exit_code = None
 
-    success, message, timestamp = platform.execute_test_plan(test_plan)
+    success, message, timestamp = platform.execute_test_plan(test_project, test_plan)
     platform.current_timestamp = timestamp
 
     return jsonify({

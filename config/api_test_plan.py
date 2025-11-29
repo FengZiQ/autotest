@@ -1,0 +1,14 @@
+# -*- coding: utf-8 -*-
+
+test_plan = {
+    'smoke': [
+        'query_order.json',
+        'login_test_data.json'
+    ],
+    'all_fun': [
+        'create_order.json',
+        'query_order.json',
+        'login_test_data.json',
+        'login_invalid_user.json',
+    ]
+}

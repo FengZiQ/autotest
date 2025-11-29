@@ -60,17 +60,48 @@ class TestPlatform:
         except Exception as e:
             return False, f"保存失败: {str(e)}"
 
-    def execute_test_plan(self, test_plan):
+    def execute_test_plan(self, test_project, test_plan):
         """执行指定的测试计划，并返回日志和报告信息"""
         try:
             # 生成时间戳
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
-            pytest_args = [
-                os.path.join(self.base_dir, 'tests', 'API', 'test_entrance.py'),
-                '-v',
-                '-m', f'api_{test_plan}'
-            ]
+            project_name = None
+            execute_test = None
+            if test_project == 'API' and test_plan == 'smoke':
+                project_name = 'API'
+                execute_test = 'test_execute_smoke_cases'
+            elif test_project == 'API' and test_plan == 'all_fun':
+                project_name = 'API'
+                execute_test = 'test_execute_all_fun'
+            elif test_project == 'API' and test_plan == 'user_service':
+                project_name = 'API'
+                execute_test = 'test_user_service'
+            elif test_project == 'API' and test_plan == 'order_service':
+                project_name = 'API'
+                execute_test = 'test_order_service'
+            elif test_project == 'android_app' and test_plan == 'smoke':
+                project_name = 'Android'
+                execute_test = 'test_execute_smoke_cases'
+            elif test_project == 'android_app' and test_plan == 'bookstore':
+                project_name = 'Android'
+                execute_test = 'test_bookstore'
+            elif test_project == 'android_app' and test_plan == 'bookshelf':
+                project_name = 'Android'
+                execute_test = 'test_bookshelf'
+            elif test_project == 'android_app' and test_plan == 'user_center':
+                project_name = 'Android'
+                execute_test = 'test_user_center'
+            elif test_project == 'Windows' and test_plan == '':
+                project_name = 'Windows'
+                execute_test = ''
+
+            # 构建文件路径
+            file_path = os.path.join(self.base_dir, 'tests', project_name, 'test_entrance.py')
+            # 组合成 pytest 可识别的格式
+            test_target = f"{file_path}::TestExecute::{execute_test}"
+
+            pytest_args = [test_target, '-v']
 
             # 在后台线程中执行测试
             def run_tests():

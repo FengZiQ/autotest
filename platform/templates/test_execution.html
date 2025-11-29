@@ -6,20 +6,26 @@
 
     <div class="execution-form">
         <div class="form-group">
-            <label for="testPlan">选择测试计划:</label>
-            <select id="testPlan" required>
-                <option value="">请选择测试计划</option>
-                <option value="smoke">冒烟测试 (smoke)</option>
-                <option value="order">订单测试 (order)</option>
-                <option value="full_functional">全功能测试 (full_functional)</option>
-                <option value="user_center">用户中心测试 (user_center)</option>
+            <label for="testProject">选择测试项目:</label>
+            <select id="testProject" required>
+                <option value="">请选择测试项目</option>
+                <option value="API">API接口</option>
+                <option value="android_app">Android App</option>
+                <option value="Windows">Windows应用</option>
             </select>
-            <div class="form-hint">选择要执行的测试计划，将执行 pytest -m api_测试计划名</div>
+            <div class="form-hint">选择要执行的测试项目</div>
+        </div>
+
+        <div class="form-group">
+            <label for="testPlan">选择测试计划:</label>
+            <select id="testPlan" required disabled>
+                <option value="">请先选择测试项目</option>
+            </select>
+            <div class="form-hint">选择要执行的测试计划</div>
         </div>
 
         <div class="button-group">
             <button id="executeBtn" class="btn btn-primary">开始执行测试</button>
-            <button id="stopBtn" class="btn btn-danger" disabled>停止测试</button>
             <button id="clearLogBtn" class="btn btn-secondary">清空日志</button>
         </div>
     </div>
@@ -29,11 +35,11 @@
         <div class="info-grid">
             <div class="info-item">
                 <label>当前状态:</label>
-                <span id="executionStatus">等待执行</span>
+                <span id="executionStatus" class="status-waiting">等待执行</span>
             </div>
             <div class="info-item">
                 <label>执行的命令:</label>
-                <span id="executionCommand">-</span>
+                <span id="executionCommand" class="command-text">-</span>
             </div>
             <div class="info-item">
                 <label>开始时间:</label>
@@ -62,6 +68,27 @@
 </div>
 
 <script>
+// 测试项目与测试计划的映射
+const testPlans = {
+    'API': [
+        { value: 'smoke', label: '冒烟测试', command: 'pytest tests/API/test_entrance.py::test_execute_smoke_cases' },
+        { value: 'all_fun', label: '全功能测试', command: 'pytest tests/API/test_entrance.py::test_execute_all_fun' },
+        { value: 'user_service', label: '用户模块测试', command: 'pytest tests/API/test_entrance.py::test_user_service' },
+        { value: 'order_service', label: '订单模块测试', command: 'pytest tests/API/test_entrance.py::test_order_service' }
+    ],
+    'android_app': [
+        { value: 'smoke', label: '冒烟测试', command: 'pytest tests/API/test_entrance.py::test_execute_smoke_cases' },
+        { value: 'bookstore', label: '书城', command: 'pytest tests/Android/test_entrance.py::test_bookstore' },
+        { value: 'bookshelf', label: '书架', command: 'pytest tests/Android/test_entrance.py::test_bookshelf' },
+        { value: 'user_center', label: '我的', command: 'pytest tests/Android/test_entrance.py::test_user_center' }
+    ],
+    'Windows': [
+        { value: 'bidding_information', label: '招标信息', command: 'pytest tests/Windows/test_entrance.py::test_bidding_information' },
+        { value: 'editing_file', label: '文件编辑', command: 'pytest tests/Windows/test_entrance.py::test_editing_file' },
+        { value: 'save_file', label: '生成文件', command: 'pytest tests/Windows/test_entrance.py::test_save_file' }
+    ]
+};
+
 // 全局变量
 let currentTimestamp = null;
 let logPollingInterval = null;
@@ -70,19 +97,66 @@ let testCompleted = false;
 
 // 初始化事件监听
 document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('testProject').addEventListener('change', updateTestPlans);
     document.getElementById('executeBtn').addEventListener('click', executeTests);
-    document.getElementById('stopBtn').addEventListener('click', stopTests);
     document.getElementById('clearLogBtn').addEventListener('click', clearLog);
     document.getElementById('autoScrollBtn').addEventListener('click', toggleAutoScroll);
     document.getElementById('copyLogBtn').addEventListener('click', copyLog);
     document.getElementById('refreshLogBtn').addEventListener('click', manualRefreshLog);
 });
 
+// 更新测试计划选项
+function updateTestPlans() {
+    const testProject = document.getElementById('testProject').value;
+    const testPlanSelect = document.getElementById('testPlan');
+
+    // 清空现有选项
+    testPlanSelect.innerHTML = '';
+
+    if (!testProject) {
+        testPlanSelect.disabled = true;
+        testPlanSelect.innerHTML = '<option value="">请先选择测试项目</option>';
+        return;
+    }
+
+    // 添加新选项
+    const plans = testPlans[testProject];
+    if (plans && plans.length > 0) {
+        testPlanSelect.disabled = false;
+        testPlanSelect.innerHTML = '<option value="">请选择测试计划</option>';
+
+        plans.forEach(plan => {
+            const option = document.createElement('option');
+            option.value = plan.value;
+            option.textContent = plan.label;
+            testPlanSelect.appendChild(option);
+        });
+    } else {
+        testPlanSelect.disabled = true;
+        testPlanSelect.innerHTML = '<option value="">该项目暂无测试计划</option>';
+    }
+}
+
+// 重置执行信息
+function resetExecutionInfo() {
+    document.getElementById('executionStatus').textContent = '等待执行';
+    document.getElementById('executionStatus').className = 'status-waiting';
+    document.getElementById('executionCommand').textContent = '-';
+    document.getElementById('executionCommand').className = 'command-text';
+    document.getElementById('startTime').textContent = '-';
+    document.getElementById('reportLink').textContent = '-';
+}
+
 // 执行测试
 async function executeTests() {
+    const testProject = document.getElementById('testProject').value;
     const testPlan = document.getElementById('testPlan').value;
     const executeBtn = document.getElementById('executeBtn');
-    const stopBtn = document.getElementById('stopBtn');
+
+    if (!testProject) {
+        alert('请选择测试项目');
+        return;
+    }
 
     if (!testPlan) {
         alert('请选择测试计划');
@@ -92,19 +166,32 @@ async function executeTests() {
     // 重置状态
     testCompleted = false;
 
+    // 停止之前的日志轮询（如果有）
+    if (logPollingInterval) {
+        clearInterval(logPollingInterval);
+        logPollingInterval = null;
+    }
+
     // 更新UI状态
     executeBtn.disabled = true;
     executeBtn.textContent = '执行中...';
-    stopBtn.disabled = false;
+
+    // 重置执行信息
+    resetExecutionInfo();
+
+    // 获取执行命令
+    const selectedPlan = testPlans[testProject].find(plan => plan.value === testPlan);
+    const command = selectedPlan ? selectedPlan.command : `pytest -m ${testPlan}`;
 
     // 更新执行信息
     const startTime = new Date().toLocaleString();
-    updateExecutionInfo('正在执行', `pytest -m api_${testPlan}`, startTime, '-');
+    updateExecutionInfo('正在执行', command, startTime, '-');
 
     // 清空日志
     clearLog();
+    addLogEntry(`开始执行测试项目: ${testProject}`);
     addLogEntry(`开始执行测试计划: ${testPlan}`);
-    addLogEntry(`执行命令: pytest -m api_${testPlan}`);
+    addLogEntry(`执行命令: ${command}`);
     addLogEntry(`开始时间: ${startTime}`);
     addLogEntry('='.repeat(50));
 
@@ -115,6 +202,7 @@ async function executeTests() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
+                test_project: testProject,
                 test_plan: testPlan
             })
         });
@@ -185,7 +273,12 @@ async function fetchLog() {
             // 检查测试是否完成
             if (data.completed) {
                 testCompleted = true;
-                updateExecutionInfo('执行完成', `pytest -m api_${document.getElementById('testPlan').value}`,
+                const testProject = document.getElementById('testProject').value;
+                const testPlan = document.getElementById('testPlan').value;
+                const selectedPlan = testPlans[testProject].find(plan => plan.value === testPlan);
+                const command = selectedPlan ? selectedPlan.command : `pytest -m ${testPlan}`;
+
+                updateExecutionInfo('执行完成', command,
                                   document.getElementById('startTime').textContent,
                                   data.report_url ? '可用' : '生成中');
 
@@ -227,21 +320,6 @@ function manualRefreshLog() {
 function showReportLink(reportUrl) {
     const reportLinkSpan = document.getElementById('reportLink');
     reportLinkSpan.innerHTML = `<a href="${reportUrl}" target="_blank" class="report-link">查看测试报告</a>`;
-}
-
-// 停止测试
-function stopTests() {
-    // 这里可以实现停止测试的逻辑
-    addLogEntry('测试停止功能暂未实现，请等待当前测试完成', 'warning');
-
-    // 停止日志轮询
-    if (logPollingInterval) {
-        clearInterval(logPollingInterval);
-        logPollingInterval = null;
-    }
-
-    resetUI();
-    updateExecutionInfo('已停止', '-', '-', '-');
 }
 
 // 清空日志
@@ -319,7 +397,16 @@ function addLogEntry(message, type = 'info') {
 // 更新执行信息
 function updateExecutionInfo(status, command, startTime, reportStatus) {
     document.getElementById('executionStatus').textContent = status;
-    document.getElementById('executionCommand').textContent = command;
+    document.getElementById('executionStatus').className = `status-${getStatusClass(status)}`;
+
+    // 更新命令显示，使用代码样式
+    const commandElement = document.getElementById('executionCommand');
+    commandElement.textContent = command;
+    commandElement.className = 'command-text';
+    if (command !== '-') {
+        commandElement.classList.add('has-command');
+    }
+
     document.getElementById('startTime').textContent = startTime;
 
     if (reportStatus !== '-') {
@@ -327,11 +414,21 @@ function updateExecutionInfo(status, command, startTime, reportStatus) {
     }
 }
 
+// 获取状态对应的CSS类名
+function getStatusClass(status) {
+    switch(status) {
+        case '等待执行': return 'waiting';
+        case '正在执行': return 'running';
+        case '执行完成': return 'completed';
+        case '已停止': return 'stopped';
+        default: return 'waiting';
+    }
+}
+
 // 重置UI状态
 function resetUI() {
     document.getElementById('executeBtn').disabled = false;
     document.getElementById('executeBtn').textContent = '开始执行测试';
-    document.getElementById('stopBtn').disabled = true;
 }
 
 // 显示消息
@@ -374,6 +471,12 @@ function showMessage(message, type = 'info') {
 </script>
 
 <style>
+.execution-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
 .execution-form {
     background: white;
     padding: 2rem;
@@ -382,26 +485,80 @@ function showMessage(message, type = 'info') {
     margin-bottom: 2rem;
 }
 
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: #fff;
+    transition: border-color 0.3s;
+}
+
+.form-group select:focus {
+    border-color: #4a90e2;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.form-hint {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+}
+
 .button-group {
     display: flex;
     gap: 10px;
     margin-top: 15px;
 }
 
-.btn-danger {
-    background-color: #dc3545;
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s;
 }
 
-.btn-danger:hover {
-    background-color: #c82333;
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-primary:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
 }
 
 .btn-secondary {
     background-color: #6c757d;
+    color: white;
 }
 
 .btn-secondary:hover {
     background-color: #5a6268;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 12px;
 }
 
 .btn-active {
@@ -418,21 +575,69 @@ function showMessage(message, type = 'info') {
 
 .info-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 15px;
 }
 
 .info-item {
     display: flex;
-    justify-content: space-between;
-    padding: 10px;
+    flex-direction: column;
+    padding: 12px;
     background: #f8f9fa;
     border-radius: 4px;
+    min-height: 70px;
+    justify-content: center;
 }
 
 .info-item label {
     font-weight: bold;
     color: #495057;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.info-item span {
+    word-break: break-all;
+    overflow-wrap: break-word;
+    line-height: 1.4;
+}
+
+/* 状态样式 */
+.status-waiting {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.status-running {
+    color: #007bff;
+    font-weight: 500;
+}
+
+.status-completed {
+    color: #28a745;
+    font-weight: 500;
+}
+
+.status-stopped {
+    color: #dc3545;
+    font-weight: 500;
+}
+
+/* 命令文本样式 */
+.command-text {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    background-color: #f1f3f4;
+    padding: 8px;
+    border-radius: 4px;
+    border-left: 3px solid #4a90e2;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.command-text.has-command {
+    background-color: #f8f9fa;
+    color: #333;
 }
 
 .report-link {
@@ -581,6 +786,27 @@ function showMessage(message, type = 'info') {
 
 .message-error {
     background-color: #e74c3c;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .execution-page {
+        padding: 10px;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .log-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .button-group {
+        flex-wrap: wrap;
+    }
 }
 </style>
 {% endblock %}
