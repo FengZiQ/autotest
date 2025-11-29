@@ -68,15 +68,6 @@ def test_execution():
     return render_template('test_execution.html')
 
 
-# 获取测试计划列表
-@main_bp.route('/api/test-plans')
-def get_test_plans():
-    """获取所有测试计划"""
-    test_plans = platform.get_test_plans()
-    return jsonify({'success': True, 'test_plans': list(test_plans.keys())})
-
-
-# 执行测试计划
 # 执行测试计划
 @main_bp.route('/api/execute-test-plan', methods=['POST'])
 def execute_test_plan():

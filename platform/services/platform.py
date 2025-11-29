@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import sys
 import json
 import glob
 import pytest
@@ -15,15 +16,6 @@ class TestPlatform:
         self.test_completed = False
         self.test_exit_code = None
         self.current_timestamp = None
-
-    def get_test_cases(self):
-        """获取所有测试用例文件"""
-        cases = []
-        if os.path.exists(self.tests_data_dir):
-            for file in os.listdir(self.tests_data_dir):
-                if file.endswith('.json'):
-                    cases.append(file.replace('.json', ''))
-        return sorted(cases)
 
     def get_test_plans(self):
         """获取所有测试计划"""
@@ -60,9 +52,31 @@ class TestPlatform:
         except Exception as e:
             return False, f"保存失败: {str(e)}"
 
+    def cleanup_module_cache(self):
+        """清理模块缓存，避免模块导入冲突"""
+        modules_to_remove = []
+        for module_name in list(sys.modules.keys()):
+            if module_name and (
+                    'test_entrance' in module_name or 'tests.API' in module_name or 'tests.Android' in module_name
+            ):
+                modules_to_remove.append(module_name)
+
+        for module_name in modules_to_remove:
+            del sys.modules[module_name]
+
+        # 清理 pycache
+        for root, dirs, files in os.walk(os.path.join(self.base_dir, 'tests')):
+            if '__pycache__' in dirs:
+                import shutil
+                pycache_path = os.path.join(root, '__pycache__')
+                shutil.rmtree(pycache_path, ignore_errors=True)
+
     def execute_test_plan(self, test_project, test_plan):
         """执行指定的测试计划，并返回日志和报告信息"""
         try:
+            # 清理模块缓存
+            self.cleanup_module_cache()
+
             # 生成时间戳
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
