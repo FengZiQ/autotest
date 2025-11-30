@@ -331,8 +331,8 @@ async function fetchLog() {
             if (data.log_content === lastLogContent) {
                 sameContentCount++;
 
-                // 如果连续5次内容相同，停止自动刷新并更新状态
-                if (sameContentCount >= 5) {
+                // 如果连续3次内容相同，停止自动刷新并更新状态
+                if (sameContentCount >= 3) {
                     stopAutoRefresh();
 
                     // 尝试获取报告URL
@@ -357,10 +357,10 @@ async function fetchLog() {
                     // 显示测试报告链接
                     if (currentReportUrl) {
                         showReportLink(currentReportUrl);
-                        addLogEntry('日志内容已连续5次无变化，测试执行完成', 'success');
+                        addLogEntry('日志内容已连续3次无变化，测试执行完成', 'success');
                         addLogEntry(`测试报告已生成: ${currentReportUrl}`, 'success');
                     } else {
-                        addLogEntry('日志内容已连续5次无变化，测试执行完成，但报告生成中...', 'info');
+                        addLogEntry('日志内容已连续3次无变化，测试执行完成，但报告生成中...', 'info');
                     }
                     return;
                 }

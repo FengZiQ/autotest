@@ -1,19 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
-import sys
 import os.path
 import pytest
 import datetime
 from utils.logger import log_record
 from utils.path_util import get_path
-
-
-@pytest.fixture(scope="session", autouse=True)
-def global_logger():
-    """全局日志记录器"""
-    logging.info("===== 测试套件开始 =====")
-    yield
-    logging.info("===== 测试套件结束 =====")
 
 
 @pytest.fixture(scope="function")
