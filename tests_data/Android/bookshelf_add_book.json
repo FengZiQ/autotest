@@ -20,7 +20,7 @@
         "locator": "com.netease.pris:id/custom_search_content",
         "action": "输入",
         "send_keys": "都市沉浮",
-        "loading_time": 3
+        "loading_time": 8
     },
     {
         "step_name": "点击查询结果",
@@ -28,30 +28,38 @@
         "locator_by": "AppiumBy.XPATH",
         "locator": "//android.widget.TextView[@resource-id=\"com.netease.pris:id/search_text\" and @text=\"都市沉浮\"]",
         "action": "点击",
-        "loading_time": 1,
+        "loading_time": 1
+    },
+    {
+        "step_name": "点击加入书架",
+        "step_number": "5",
+        "locator_by": "AppiumBy.ID",
+        "locator": "com.netease.pris:id/info_bt_subordownload",
+        "action": "点击",
+        "loading_time": 1
+    },
+    {
+        "step_name": "返回",
+        "step_number": "6",
+        "action": "按返回键"
+    },
+    {
+        "step_name": "返回",
+        "step_number": "7",
+        "action": "按返回键"
+    },
+    {
+        "step_name": "返回",
+        "step_number": "8",
+        "action": "按返回键",
         "expected_results": [
             {
                 "assert_form": "assert_text_equals",
-                "assert_describe": "页面有免费阅读按钮",
-                "locator_by": "AppiumBy.ID",
-                "locator": "com.netease.pris:id/info_btread",
-                "expected_text": "免费试读"
+                "assert_describe": "页面出现都市沉浮书籍",
+                "locator_by": "AppiumBy.XPATH",
+                "locator": "//android.widget.TextView[@resource-id=\"com.netease.pris:id/tv_title\" and @text=\"都市沉浮\"]",
+                "expected_text": "都市沉浮"
             }
         ]
-    },
-    {
-        "step_name": "返回",
-        "step_number": "5",
-        "action": "按返回键"
-    },
-    {
-        "step_name": "返回",
-        "step_number": "6",
-        "action": "按返回键"
-    },
-    {
-        "step_name": "返回",
-        "step_number": "6",
-        "action": "按返回键"
     }
 ]

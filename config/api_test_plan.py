@@ -2,8 +2,7 @@
 
 test_plan = {
     'smoke': [
-        'query_order.json',
-        'login_test_data.json'
+        'show.json'
     ],
     'all_fun': [
         'create_order.json',

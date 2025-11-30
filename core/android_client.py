@@ -76,7 +76,7 @@ class AndroidAutomationTool:
         except Exception as e:
             logger.warning(f'{app_package}应用停止失败。错误信息：{e}')
 
-    def find_element(self, locator, timeout=10):
+    def find_element(self, locator, timeout=15):
         """
         查找元素
         :param locator: 定位器元组 (By, value)
