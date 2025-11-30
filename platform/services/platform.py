@@ -113,13 +113,15 @@ class TestPlatform:
             # 构建文件路径
             file_path = os.path.join(self.base_dir, 'tests', project_name, 'test_entrance.py')
             # 组合成 pytest 可识别的格式
-            test_target = f"{file_path}::TestExecute::{execute_test}"
+            test_command = f"pytest {file_path}::TestExecute::{execute_test}"
 
-            pytest_args = [test_target, '-v']
+            # test_target = f"{file_path}::TestExecute::{execute_test}"
+            # pytest_args = [test_target, '-v']
 
             # 在后台线程中执行测试
             def run_tests():
-                exit_code = pytest.main(pytest_args)
+                # exit_code = pytest.main(pytest_args)
+                exit_code = os.system(test_command)
                 self.test_completed = True
                 self.test_exit_code = exit_code
 
