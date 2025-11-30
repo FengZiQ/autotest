@@ -1,18 +1,21 @@
- {% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block content %}
 <div class="management-page">
     <h2>测试用例管理</h2>
 
+    <!-- Toast 提示容器 -->
+    <div id="toastContainer" class="toast-container"></div>
+
     <div class="form-section">
         <h3>新增测试用例</h3>
         <form id="testCaseForm">
             <div class="form-group">
-                <label for="testPlan">测试项目:</label>
-                <select id="testPlan" name="testPlan" required>
+                <label for="testProject">测试项目:</label>
+                <select id="testProject" name="testProject" required>
                     <option value="">请选择测试项目</option>
-                    <option value="smoke">Android</option>
-                    <option value="order">API</option>
+                    <option value="Android">Android</option>
+                    <option value="API">API</option>
                 </select>
                 <div class="form-hint">选择测试项目分类</div>
             </div>
@@ -30,12 +33,12 @@
                 <button type="button" id="formatJSON" class="btn btn-small">格式化JSON</button>
             </div>
 
-            <button type="submit" class="btn btn-primary">保存用例</button>
+            <button type="submit" class="btn btn-primary" id="saveButton">保存用例</button>
         </form>
     </div>
 
     <div class="test-plans-section">
-        <h3>测试计划与用例</h3>
+        <h3>测试项目与用例</h3>
 
         {% if test_plans %}
             <div class="test-plans-container">
@@ -69,78 +72,143 @@
 </div>
 
 <script>
-// 初始化事件监听
+// 防止重复提交标志
+let isSubmitting = false;
+let formInitialized = false;
+
+// 初始化事件监听 - 使用一次性初始化
+function initializeForm() {
+    if (formInitialized) return;
+
+    const form = document.getElementById('testCaseForm');
+    const formatBtn = document.getElementById('formatJSON');
+    const caseData = document.getElementById('caseData');
+
+    // 移除可能存在的旧监听器
+    form.removeEventListener('submit', handleSubmit);
+    formatBtn.removeEventListener('click', formatJSON);
+    caseData.removeEventListener('input', validateJSON);
+
+    // 添加新监听器
+    form.addEventListener('submit', handleSubmit, { once: false });
+    formatBtn.addEventListener('click', formatJSON, { once: false });
+    caseData.addEventListener('input', validateJSON, { once: false });
+
+    formInitialized = true;
+    console.log('表单事件监听器已初始化');
+}
+
+// DOM加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    // 表单提交
-    document.getElementById('testCaseForm').addEventListener('submit', handleSubmit);
-
-    // JSON格式化
-    document.getElementById('formatJSON').addEventListener('click', formatJSON);
-
-    // JSON实时验证
-    document.getElementById('caseData').addEventListener('input', validateJSON);
+    initializeForm();
 });
 
-// 处理表单提交
+// 如果页面是动态加载的，也重新初始化
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeForm);
+} else {
+    initializeForm();
+}
+
+// 处理表单提交 - 使用更严格的防止重复提交
 async function handleSubmit(e) {
     e.preventDefault();
+    e.stopPropagation(); // 阻止事件冒泡
+    e.stopImmediatePropagation(); // 阻止其他相同类型的事件
 
-    const testPlan = document.getElementById('testPlan').value;
+    console.log('表单提交处理开始, isSubmitting:', isSubmitting);
+
+    // 防止重复提交
+    if (isSubmitting) {
+        console.log('阻止重复提交');
+        showToast('请勿重复提交', 'warning');
+        return false;
+    }
+
+    // 设置提交状态
+    isSubmitting = true;
+    const saveButton = document.getElementById('saveButton');
+    const originalText = saveButton.textContent;
+    saveButton.textContent = '保存中...';
+    saveButton.disabled = true;
+
+    const testProject = document.getElementById('testProject').value;
     const caseName = document.getElementById('caseName').value.trim();
     const caseData = document.getElementById('caseData').value.trim();
 
-    if (!testPlan) {
-        alert('请选择测试计划');
-        return;
+    // 验证输入
+    if (!testProject) {
+        showToast('请选择测试项目', 'warning');
+        resetSubmitState(saveButton, originalText);
+        return false;
     }
 
     if (!caseName) {
-        alert('请输入用例名称');
-        return;
+        showToast('请输入用例名称', 'warning');
+        resetSubmitState(saveButton, originalText);
+        return false;
     }
 
     if (!caseData) {
-        alert('请输入用例数据');
-        return;
+        showToast('请输入用例数据', 'warning');
+        resetSubmitState(saveButton, originalText);
+        return false;
     }
 
     // 验证JSON格式
     if (!isValidJSON(caseData)) {
-        alert('用例数据必须是有效的JSON格式');
-        return;
+        showToast('用例数据必须是有效的JSON格式', 'error');
+        resetSubmitState(saveButton, originalText);
+        return false;
     }
 
     try {
+        console.log('开始API调用');
         const response = await fetch('/api/test-cases', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                test_plan: testPlan,
+                test_project: testProject,
                 case_name: caseName,
                 case_data: caseData
             })
         });
 
         const data = await response.json();
+        console.log('API响应:', data);
 
         if (data.success) {
-            alert('保存成功！');
+            showToast('保存成功！', 'success');
             // 清空表单
             document.getElementById('testCaseForm').reset();
             clearValidation();
             // 刷新页面
             setTimeout(() => {
                 location.reload();
-            }, 1000);
+            }, 1500);
         } else {
-            alert('保存失败: ' + data.message);
+            showToast('保存失败: ' + data.message, 'error');
+            resetSubmitState(saveButton, originalText);
         }
     } catch (error) {
         console.error('保存失败:', error);
-        alert('保存失败，请检查网络连接');
+        showToast('保存失败，请检查网络连接', 'error');
+        resetSubmitState(saveButton, originalText);
     }
+
+    return false; // 防止默认表单提交行为
+}
+
+// 重置提交状态
+function resetSubmitState(button, originalText) {
+    setTimeout(() => {
+        isSubmitting = false;
+        button.textContent = originalText;
+        button.disabled = false;
+        console.log('提交状态已重置');
+    }, 1000);
 }
 
 // JSON验证函数
@@ -215,7 +283,7 @@ function showValidationState(state, message) {
     hint.className = `json-validation-hint ${state}`;
 }
 
-// 切换测试计划显示
+// 切换测试项目显示
 function togglePlan(planName) {
     const casesList = document.getElementById(`cases-${planName}`);
     if (casesList.style.display === 'none') {
@@ -226,17 +294,17 @@ function togglePlan(planName) {
 }
 
 // 加载用例进行编辑
-async function loadCase(testPlan, caseName) {
+async function loadCase(testProject, caseName) {
     try {
         // 移除.json后缀
         const pureCaseName = caseName.replace('.json', '');
 
-        const response = await fetch(`/api/test-cases/${testPlan}/${pureCaseName}`);
+        const response = await fetch(`/api/test-cases/${testProject}/${pureCaseName}`);
         const data = await response.json();
 
         if (data.success) {
             // 填充表单
-            document.getElementById('testPlan').value = testPlan;
+            document.getElementById('testProject').value = testProject;
             document.getElementById('caseName').value = pureCaseName;
             document.getElementById('caseData').value = data.data;
 
@@ -248,32 +316,56 @@ async function loadCase(testPlan, caseName) {
             // 更新按钮文本
             document.querySelector('button[type="submit"]').textContent = '更新用例';
 
-            alert(`已加载用例: ${caseName}，请修改后点击"更新用例"保存`);
+            showToast(`已加载用例: ${caseName}，请修改后点击"更新用例"保存`, 'info');
         } else {
-            alert('加载失败: ' + data.message);
+            showToast('加载失败: ' + data.message, 'error');
         }
     } catch (error) {
         console.error('加载用例失败:', error);
-        alert('加载失败，请检查网络连接');
+        showToast('加载失败，请检查网络连接', 'error');
     }
 }
 
 // 删除用例
-function deleteCase(testPlan, caseName) {
+function deleteCase(testProject, caseName) {
     if (!confirm(`确定要删除用例 "${caseName}" 吗？此操作不可恢复。`)) {
         return;
     }
     // 调用后端删除接口
-    fetch(`/api/test-cases/${testPlan}/${caseName}`, { method: 'DELETE' })
+    fetch(`/api/test-cases/${testProject}/${caseName}`, { method: 'DELETE' })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('删除成功');
-            location.reload();
+            showToast('删除成功', 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
         } else {
-            alert('删除失败: ' + data.message);
+            showToast('删除失败: ' + data.message, 'error');
         }
     });
+}
+
+// 显示Toast提示
+function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <span class="toast-message">${message}</span>
+            <button class="toast-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+        </div>
+    `;
+
+    toastContainer.appendChild(toast);
+
+    // 自动移除
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 5000);
 }
 </script>
 
@@ -380,6 +472,101 @@ textarea.valid {
 
 textarea.invalid {
     border-color: #dc3545;
+}
+
+/* Toast 样式 */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    min-width: 300px;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideIn 0.3s ease-out;
+}
+
+.toast-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+}
+
+.toast-message {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.7;
+}
+
+.toast-close:hover {
+    opacity: 1;
+}
+
+.toast-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.toast-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.toast-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.toast-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* 按钮禁用状态 */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* 防止表单重复提交的额外样式 */
+#testCaseForm {
+    position: relative;
+}
+
+#saveButton:disabled::after {
+    content: ' (提交中...)';
+    font-size: 0.9em;
+    opacity: 0.8;
 }
 </style>
 {% endblock %}

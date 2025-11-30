@@ -23,22 +23,22 @@ def test_case_management():
 @main_bp.route('/api/test-cases', methods=['POST'])
 def save_test_case():
     data = request.json
-    test_plan = data.get('test_plan')
+    test_project = data.get('test_project')
     case_name = data.get('case_name')
     case_data = data.get('case_data')
 
-    if not test_plan or not case_name or not case_data:
+    if not test_project or not case_name or not case_data:
         return jsonify({'success': False, 'message': '测试计划、用例名称和数据不能为空'})
 
-    success, message = platform.save_test_case(test_plan, case_name, case_data)
+    success, message = platform.save_test_case(test_project, case_name, case_data)
     return jsonify({'success': success, 'message': message})
 
 
-@main_bp.route('/api/test-cases/<test_plan>/<case_name>', methods=['GET'])
-def get_test_case(test_plan, case_name):
+@main_bp.route('/api/test-cases/<test_project>/<case_name>', methods=['GET'])
+def get_test_case(test_project, case_name):
     """获取测试用例内容"""
     try:
-        file_path = os.path.join(platform.tests_data_dir, test_plan, f"{case_name}.json")
+        file_path = os.path.join(platform.tests_data_dir, test_project, f"{case_name}.json")
         if os.path.exists(file_path):
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -49,11 +49,11 @@ def get_test_case(test_plan, case_name):
         return jsonify({'success': False, 'message': f'读取失败: {str(e)}'})
 
 
-@main_bp.route('/api/test-cases/<test_plan>/<case_name>', methods=['DELETE'])
-def delete_test_case(test_plan, case_name):
+@main_bp.route('/api/test-cases/<test_project>/<case_name>', methods=['DELETE'])
+def delete_test_case(test_project, case_name):
     """删除测试用例"""
     try:
-        file_path = os.path.join(platform.tests_data_dir, test_plan, f"{case_name}.json")
+        file_path = os.path.join(platform.tests_data_dir, test_project, f"{case_name}")
         if os.path.exists(file_path):
             os.remove(file_path)
             return jsonify({'success': True, 'message': '删除成功'})

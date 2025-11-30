@@ -32,14 +32,14 @@ class TestPlatform:
                     test_plans[item] = sorted(test_cases)
         return test_plans
 
-    def save_test_case(self, test_plan, case_name, case_data):
+    def save_test_case(self, test_project, case_name, case_data):
         """保存测试用例到指定测试计划"""
         try:
             # 验证JSON格式
             json.loads(case_data)
 
             # 确保测试计划目录存在
-            plan_dir = os.path.join(self.tests_data_dir, test_plan)
+            plan_dir = os.path.join(self.tests_data_dir, test_project)
             os.makedirs(plan_dir, exist_ok=True)
 
             # 保存文件
