@@ -75,7 +75,7 @@ class AndroidTestExecutor:
             'action': step.get('action', '点击'),
             'send_keys': step.get('send_keys', ''),
             'loading_time': step.get('loading_time', 0.5),
-            'waiting_time': step.get('waiting_time', 0.5),
+            'locator_waiting_time': step.get('locator_waiting_time', 0.5),
             'action_success': False,
             'assertions': [],
             'error': None
@@ -99,13 +99,14 @@ class AndroidTestExecutor:
                 action_success = self.android_tool.click_element(
                     locator=locator,
                     loading_time=step_result.get('loading_time'),
-                    timeout=step_result.get('waiting_time')
+                    timeout=step_result.get('locator_waiting_time')
                 )
             elif step_result.get('action') == '输入':
                 action_success = self.android_tool.send_keys(
                     locator=locator,
                     text=step_result.get('send_keys'),
-                    timeout=step_result.get('waiting_time')
+                    timeout=step_result.get('locator_waiting_time'),
+                    loading_time=step_result.get('loading_time')
                 )
             elif step_result.get('action') == '按返回键':
                 action_success = self.android_tool.back()

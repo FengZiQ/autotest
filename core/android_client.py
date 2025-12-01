@@ -76,7 +76,7 @@ class AndroidAutomationTool:
         except Exception as e:
             logger.warning(f'{app_package}应用停止失败。错误信息：{e}')
 
-    def find_element(self, locator, timeout=15):
+    def find_element(self, locator, timeout=10):
         """
         查找元素
         :param locator: 定位器元组 (By, value)
@@ -98,22 +98,21 @@ class AndroidAutomationTool:
         点击元素
         :param locator: 定位器元组
         :param timeout: 超时时间
-        :param loading_time: 页面完成加载时间
+        :param loading_time: 点击后下一个页面完成加载时间
         :return: 操作是否成功
         """
         element = self.find_element(locator, timeout)
         if element:
             try:
-                time.sleep(loading_time)
                 element.click()
-                print(f"元素点击成功: {locator}")
+                time.sleep(loading_time)
                 return True
             except Exception as e:
                 logger.warning(f"元素点击失败: {str(e)}")
                 return False
         return False
 
-    def send_keys(self, locator, text, timeout=10):
+    def send_keys(self, locator, text, timeout=10, loading_time=1):
         """
         输入文本
         :param locator: 定位器元组
@@ -127,7 +126,7 @@ class AndroidAutomationTool:
             try:
                 element.clear()
                 element.send_keys(text)
-                print(f"文本输入成功: {text}")
+                time.sleep(loading_time)
                 return True
             except Exception as e:
                 logger.warning(f"文本输入失败: {str(e)}")
