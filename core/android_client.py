@@ -113,7 +113,7 @@ class AndroidAutomationTool:
                 return False
         return False
 
-    def send_keys(self, locator, text, timeout=10, loading_time=0.5):
+    def send_keys(self, locator, text, timeout=10):
         """
         输入文本
         :param locator: 定位器元组
@@ -127,7 +127,6 @@ class AndroidAutomationTool:
             try:
                 element.clear()
                 element.send_keys(text)
-                time.sleep(loading_time)
                 print(f"文本输入成功: {text}")
                 return True
             except Exception as e:
