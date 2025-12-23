@@ -41,7 +41,7 @@ def log_record(timestamp):
             'root',
             'airtest.services.api',
             'airtest.aircv.multiscale_template_matching',
-            'windows_app_test',
+            'windows_client',
             'http_client',
             'api_test_executor',
             'android_client',
