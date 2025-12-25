@@ -357,8 +357,3 @@ class AirtestClient:
             ST.LOG_DIR = None
 
 
-if __name__ == "__main__":
-    ac = AirtestClient(r'C:\Glodon\GBAssistant\GEBA\GBidAssistant.exe')
-    # ac.start_windows_app()
-    print(ac.close_windows_app('广联达投标服务'))
-
