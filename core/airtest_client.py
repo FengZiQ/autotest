@@ -1,30 +1,102 @@
 # -*- coding: utf-8 -*-
+import os
 import logging
 import time
+import subprocess
 from airtest.core.cv import Template
 from utils.path_util import get_path
-from config.windows_app_config import config_data
-from airtest.core.api import exists, touch, text, swipe, ST, assert_exists, assert_not_exists, snapshot, wait, keyevent, set_clipboard
+from airtest.core.api import touch, text, swipe, snapshot, wait, exists, ST, keyevent, set_clipboard
+from airtest.core.api import assert_exists, assert_not_exists, start_app, stop_app, connect_device
 
 
-logger = logging.getLogger('windows_client')
+logger = logging.getLogger('airtest_client')
 
 
-class WinAppHandel:
+class AirtestClient:
     def __init__(self, app_path):
+        """
+        :param app_path: android应用是传package，windows应用传.exe文件绝对路径
+        其他初始化配置：
+            app_feature_dir 应用页面特征截图文件夹
+            assert_feature_dir 断言应用页面特征截图文件夹
+            fail_img 断言失败截图文件夹
+            resolution 屏幕分辨率
+            fail_img_quality 初始化airtest截图质量
+            find_timeout 初始化airtest在屏幕查找特征的超时时间
+        """
         self.app_path = app_path
-        self.app_feature_dir = get_path('resources', 'image', 'app_feature')
-        self.assert_feature_dir = get_path('resources', 'image', 'assert')
+        self.app_feature_dir = None
+        self.assert_feature_dir = None
         self.fail_img = get_path('reports', 'screenshots')
+        self.resolution = (1920, 1080)
         self.fail_img_quality = 10
         self.find_timeout = 10
         ST.FIND_TIMEOUT = self.find_timeout
+        os.makedirs(self.fail_img, exist_ok=True)
 
-    def start_app(self):
-        pass
+    def start_android_app(self, device_info):
+        """连接设备，启动测试app"""
+        try:
+            # 连接设备
+            dev = connect_device(uri=device_info)
+            if dev:
+                # 启动测试app
+                start_app(package=self.app_path)
+                # 检查测试app是否启动成功
+                dev.shell(f'ps | grep {self.app_path}')
+                # 等待测试app加载
+                time.sleep(3)
+                return True
+        except Exception as e:
+            print(e)
+            logger.error(f'app启动失败！错误信息：{e}')
+            return False
 
-    def close_app(self):
-        pass
+    def close_android_app(self):
+        """关闭测试app"""
+        try:
+            stop_app(package=self.app_path.get('package'))
+        except Exception as e:
+            logger.error(f'app关闭失败！错误信息：{e}')
+
+    def start_windows_app(self):
+        # 启动测试应用
+        try:
+            subprocess.Popen(self.app_path)
+            logger.info(f'app启动成功^_^')
+            return True
+        except Exception as e:
+            logger.error(f'app启动失败！错误信息：{e}')
+            return False
+
+    def connect_windows_app(self, title, timeout=10):
+        """连接Windows应用"""
+        n = timeout
+        dev = None
+        while True:
+            try:
+                dev = connect_device(f"windows:///?title={title}")
+                break
+            except:
+                n -= 1
+                time.sleep(1)
+                if n == 0:
+                    break
+        if n > 0:
+            logger.info(f'{title} 连接成功^_^')
+            return True, dev
+        if n == 0:
+            logger.warning(f'{title} 连接超时……')
+            return False, None
+
+    def close_windows_app(self, title):
+        """关闭Windows应用"""
+        try:
+            dev = self.connect_windows_app(title)[1]
+            dev.kill()
+            logger.info('app关闭成功^_^')
+        except Exception as e:
+            logger.error(f'app关闭失败！错误信息：{e}')
 
     def find_feature(self, feature_name, threshold=0.7, target_pos=5, rgb=False):
         """
@@ -37,10 +109,10 @@ class WinAppHandel:
         """
         try:
             template = Template(
-                filename=f'{self.app_feature_dir}/{feature_name}.png',
+                filename=feature_name,
                 threshold=threshold,
                 target_pos=target_pos,
-                resolution=config_data.get('resolution'),
+                resolution=self.resolution,
                 rgb=rgb
             )
             pos = exists(template)
@@ -64,11 +136,12 @@ class WinAppHandel:
         :param right_click: 是否鼠标右键
         """
         """带重试机制的图像识别点击"""
+        op_id = None
         for attempt in range(retry):
             try:
-                touch(
-                    self.find_feature(
-                        feature_name=f'{self.app_feature_dir}/{feature_name}.png',
+                op_id = touch(
+                    Template(
+                        filename=get_path(self.app_feature_dir, feature_name + ".png"),
                         target_pos=target_pos,
                         threshold=threshold,
                         rgb=rgb
@@ -79,6 +152,10 @@ class WinAppHandel:
                 time.sleep(interval)
                 if attempt == retry - 1:
                     logger.error(f"{feature_name} 点击失败!")
+        if op_id:
+            return True
+        else:
+            return False
 
     def input_text(self, feature_name, threshold=0.7, target_pos=5, input_text='', time_sleep=0.5):
         """
@@ -89,13 +166,17 @@ class WinAppHandel:
         :param input_text: 输入文本
         :param time_sleep: 输入文本后等待时间
         """
-        self.click(
-            feature_name=f'{self.app_feature_dir}/{feature_name}.png',
+        op_id = self.click(
+            feature_name=feature_name,
             threshold=threshold,
             target_pos=target_pos
         )
         text(input_text)
         time.sleep(time_sleep)
+        if op_id:
+            return True
+        else:
+            return False
 
     def click_if_feature(self, feature_name, if_feature, threshold=0.7, target_pos=5, right_click=False, timeout=15):
         """
@@ -108,17 +189,18 @@ class WinAppHandel:
         :param right_click: 是否鼠标右键
         """
         n = 0
+        op_id = None
         while True:
             try:
                 if wait(
                     Template(
-                        filename=f'{self.app_feature_dir}/{if_feature}.png',
+                        filename=get_path(self.app_feature_dir, if_feature + ".png"),
                         threshold=threshold
                     ),
                         timeout=int(timeout/3)
                 ):
-                    self.click(
-                        feature_name=f'{self.app_feature_dir}/{feature_name}.png',
+                    op_id = self.click(
+                        feature_name=feature_name,
                         threshold=threshold,
                         target_pos=target_pos,
                         right_click=right_click
@@ -128,6 +210,10 @@ class WinAppHandel:
                 n += 1
                 if n == 3:
                     break
+        if op_id:
+            return True
+        else:
+            return False
 
     def click_if_not_feature(self, feature_name, if_feature, threshold=0.7, target_pos=5, right_click=False, timeout=10):
         """
@@ -140,11 +226,12 @@ class WinAppHandel:
         :param right_click: 是否鼠标右键
         """
         n = 0
+        op_id = None
         while True:
             try:
                 if wait(
                     Template(
-                        filename=f'{self.app_feature_dir}/{if_feature}.png',
+                        filename=get_path(self.app_feature_dir, if_feature + ".png"),
                         threshold=threshold
                     ),
                         timeout=1
@@ -154,19 +241,33 @@ class WinAppHandel:
                     if n == 10:
                         break
             except:
-                self.click(
-                    feature_name=f'{self.app_feature_dir}/{feature_name}.png',
+                op_id = self.click(
+                    feature_name=feature_name,
                     threshold=threshold,
                     target_pos=target_pos,
                     right_click=right_click
                 )
                 break
+        if op_id:
+            return True
+        else:
+            return False
 
     def swipe(self, feature_name1, feature_name2, threshold=0.7, target_pos=5):
+        op_id = None
         feature1 = self.find_feature(feature_name1, threshold=threshold, target_pos=target_pos)
         feature2 = self.find_feature(feature_name2, threshold=threshold, target_pos=target_pos)
-        if feature1 and feature2:
-            swipe(v1=feature1, v2=feature2)
+        try:
+            if feature1 and feature2:
+                op_id = swipe(v1=feature1, v2=feature2)
+            else:
+                logger.info(f'拖拽操作失败！屏幕中未找到{feature_name1}或{feature_name2}')
+        except Exception as e:
+            logger.warning(f'拖拽操作失败！错误信息：{e}')
+        if op_id:
+            return True
+        else:
+            return False
 
     def other_operate(self, operate_info: dict):
         try:
@@ -178,6 +279,8 @@ class WinAppHandel:
                         keyevent(value)
                 elif key == 'set_clipboard':
                     set_clipboard(value)
+                elif key == 'text':
+                    text(value)
         except Exception as e:
             logger.warning(f'{operate_info}执行失败！错误信息：{e}')
 
@@ -193,20 +296,18 @@ class WinAppHandel:
         ST.FIND_TIMEOUT = timeout
         ST.THRESHOLD_STRICT = threshold
         template = self.find_feature(
-            feature_name=f'{self.assert_feature_dir}/{feature_name}.png',
+            feature_name=get_path(self.assert_feature_dir, feature_name + ".png"),
             rgb=rgb
         )
         try:
             if template:
                 pos = assert_exists(template)
-                logger.info(f'{feature_name}存在，屏幕坐标为：{pos}。断言成功^_^')
-                return True, None
+                logger.info(f'{feature_name}存在，屏幕坐标为：{pos}。#测试通过#')
+                return True
         except Exception as e:
-            # 截取当前屏幕
-            fail_img_path = self.take_screenshot()
-            logger.info(f'{feature_name}存在。断言失败-_-| 屏幕截图：{fail_img_path}')
+            logger.info(f'{feature_name}存在。#测试失败#')
             logger.warning(e)
-            return False, fail_img_path
+            return False
         finally:
             ST.FIND_TIMEOUT = self.find_timeout
 
@@ -222,19 +323,17 @@ class WinAppHandel:
         ST.FIND_TIMEOUT_TMP = timeout
         ST.THRESHOLD_STRICT = threshold
         template = self.find_feature(
-            feature_name=f'{self.assert_feature_dir}/{feature_name}.png',
+            feature_name=get_path(self.assert_feature_dir, feature_name + ".png"),
             rgb=rgb
         )
         try:
             if template:
                 pos = assert_not_exists(template)
-                # 截取当前屏幕
-                fail_img_path = self.take_screenshot()
-                logger.warning(f'{feature_name}存在，屏幕坐标为：{pos}。断言失败-_-| 屏幕截图：{fail_img_path}')
-                return False, fail_img_path
+                logger.info(f'{feature_name}存在，屏幕坐标为：{pos}。#测试失败#')
+                return False
         except:
-            logger.info(f'{feature_name}不存在。断言成功^_^')
-            return True, None
+            logger.info(f'{feature_name}不存在。#测试通过#')
+            return True
 
     def take_screenshot(self, filename=None):
         """
@@ -256,3 +355,10 @@ class WinAppHandel:
             return None
         finally:
             ST.LOG_DIR = None
+
+
+if __name__ == "__main__":
+    ac = AirtestClient(r'C:\Glodon\GBAssistant\GEBA\GBidAssistant.exe')
+    # ac.start_windows_app()
+    print(ac.close_windows_app('广联达投标服务'))
+
