@@ -5,6 +5,7 @@ import pytest
 import datetime
 from pytest_html import extras
 from core.airtest_client import AirtestClient
+from core.airtest_executor import AirtestTestExecutor
 
 
 @pytest.fixture(scope="session")
@@ -25,8 +26,8 @@ def app_8():
 def app_a():
     # 启动应用
     client_a = AirtestClient(os.getenv('a_path'))
-    client_a.app_feature_dir = r''
-    client_a.assert_feature_dir = r''
+    client_a.app_feature_dir = r'C:\fzq\project\geb8_autoproject\tests\geba\pictures'
+    client_a.assert_feature_dir = r'C:\fzq\project\geb8_autoproject\tests\geba\pictures'
     client_a.start_windows_app()
     client_a.connect_windows_app(title=os.getenv('a_title'))
 
@@ -35,38 +36,46 @@ def app_a():
     client_a.close_windows_app(title=os.getenv('a_title'))
 
 
-# @pytest.hookimpl(hookwrapper=True)
-# def pytest_runtest_makereport(item, call):
-#     """处理测试报告"""
-#     outcome = yield
-#     report = outcome.get_result()
+@pytest.fixture(scope="function")
+def app_a_executor(app_a):
+    # 创建用例自动化执行器
+    executor = AirtestTestExecutor(app_a)
 
-    # # 只在测试函数调用阶段处理
-    # if report.when == "call":
-    #
-    #     report_extras = getattr(report, "extras", [])
-    #
-    #     # 失败时截图
-    #     if report.failed and hasattr(item, 'fixturenames') and 'windows_device' in item.fixturenames:
-    #         # 获取测试名称（安全处理特殊字符）
-    #         test_name = report.nodeid.split("::")[-1]
-    #         safe_test_name = "".join(c if c.isalnum() or c in "._-" else "_" for c in test_name)
-    #         timestamp = datetime.datetime.now().strftime("%H%M%S")
-    #         screenshot_name = f"{safe_test_name}_{timestamp}.png"
-    #
-    #
-    #         # 使用airtest截图
-    #         try:
-    #             # 获取windows_device fixture实例
-    #             windows_device_fixture = item.funcargs.get('windows_device')
-    #             if windows_device_fixture:
-    #                 # 使用设备实例进行截图
-    #                 # snapshot(screenshot_path)
-    #                 # logging.info(f"测试失败截图已保存至: {screenshot_path}")
-    #
-    #                 # 添加到报告
-    #                 report_extras.append(extras.png(f'screenshots/{screenshot_name}'))
-    #         except Exception as e:
-    #             logging.error(f"截图失败: {str(e)}")
-    #
-    #     report.extras = report_extras
+    yield executor
+
+    # 重置一下step_screenshots
+    executor.step_screenshots = []
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """处理测试报告"""
+    outcome = yield
+    report = outcome.get_result()
+    report_extras = getattr(report, "extras", [])
+
+    # 处理测试步骤截图
+    if hasattr(item, 'funcargs'):
+        # 检查是否有测试执行器的参数
+        for arg_name, arg_value in item.funcargs.items():
+            if hasattr(arg_value, 'get_step_screenshots'):
+                # 获取步骤截图信息
+                step_screenshots = arg_value.get_step_screenshots()
+
+                for screenshot_info in step_screenshots:
+                    if os.path.exists(screenshot_info):
+                        # 添加截图到报告extras
+                        # report_extras.append(
+                        #     extras.image(screenshot_info, name=screenshot_info)
+                        # )
+
+                        # 以URL形式嵌入截图
+                        screenshot_name = screenshot_info.split('/')[-1]
+                        report_extras.append(
+                            extras.url(
+                                content=f'http://localhost:63342/autotest/reports/screenshots/{screenshot_name}',
+                                name=f'<br>{screenshot_name}<br>'
+                            )
+                        )
+
+    report.extras = report_extras

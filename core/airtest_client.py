@@ -3,9 +3,10 @@ import os
 import logging
 import time
 import subprocess
+import pyautogui
 from airtest.core.cv import Template
 from utils.path_util import get_path
-from airtest.core.api import touch, text, swipe, snapshot, wait, exists, ST, keyevent, set_clipboard
+from airtest.core.api import touch, text, swipe, snapshot, wait, exists, ST, keyevent, set_clipboard, paste
 from airtest.core.api import assert_exists, assert_not_exists, start_app, stop_app, connect_device
 
 
@@ -32,6 +33,7 @@ class AirtestClient:
         self.fail_img_quality = 10
         self.find_timeout = 10
         ST.FIND_TIMEOUT = self.find_timeout
+        ST.SAVE_IMAGE = False
         os.makedirs(self.fail_img, exist_ok=True)
 
     def start_android_app(self, device_info):
@@ -148,6 +150,8 @@ class AirtestClient:
                     ),
                     right_click=right_click
                 )
+                logger.info(f'{feature_name}—>点击成功。')
+                break
             except:
                 time.sleep(interval)
                 if attempt == retry - 1:
@@ -174,8 +178,10 @@ class AirtestClient:
         text(input_text)
         time.sleep(time_sleep)
         if op_id:
+            logger.info(f'{input_text}—>输入完成，输入后等待{time_sleep}秒。')
             return True
         else:
+            logger.error(f'{input_text}—>输入失败!')
             return False
 
     def click_if_feature(self, feature_name, if_feature, threshold=0.7, target_pos=5, right_click=False, timeout=15):
@@ -199,6 +205,7 @@ class AirtestClient:
                     ),
                         timeout=int(timeout/3)
                 ):
+                    logger.info(f'{if_feature}—>出现。')
                     op_id = self.click(
                         feature_name=feature_name,
                         threshold=threshold,
@@ -209,6 +216,7 @@ class AirtestClient:
             except:
                 n += 1
                 if n == 3:
+                    logger.error(f'{if_feature}—>未出现！{feature_name}—>点击失败。')
                     break
         if op_id:
             return True
@@ -239,8 +247,10 @@ class AirtestClient:
                     n += 1
                     time.sleep(timeout/10)
                     if n == 10:
+                        logger.error(f'{if_feature}—>未消失！{feature_name}—>点击失败。')
                         break
             except:
+                logger.info(f'{if_feature}—>消失。')
                 op_id = self.click(
                     feature_name=feature_name,
                     threshold=threshold,
@@ -253,38 +263,82 @@ class AirtestClient:
         else:
             return False
 
-    def swipe(self, feature_name1, feature_name2, threshold=0.7, target_pos=5):
+    def scroll_until_feature(self, feature_name, threshold=0.7, scroll_value=0, timeout=10):
+        """
+        Windows系统上下滚动页面，直到出现指定特征
+        :param feature_name: 指定特征图片名
+        :param threshold: 匹配特征精度值0~1
+        :param scroll_value: 负值向下滑动，正值向上滑动
+        :param timeout: 等待时长
+        """
+        n = 0
+        while True:
+            if scroll_value == 0:
+                logger.warning('滑动值为0，请确认！')
+                break
+            try:
+                if n == timeout or wait(
+                        Template(
+                            filename=get_path(self.app_feature_dir, feature_name + ".png"),
+                            threshold=threshold
+                        ),
+                        timeout=0.5
+                ):
+                    break
+            except:
+                pyautogui.scroll(scroll_value)
+                time.sleep(0.5)
+                n += 1
+        if n == timeout:
+            logger.error(f'{feature_name}—>未出现！请尝试调整滚动值scroll_value，或调整超时时间timeout')
+            return False
+        else:
+            if scroll_value > 0:
+                logger.info(f'向上滑动，{feature_name}—>出现。')
+            elif scroll_value < 0:
+                logger.info(f'向下滑动，{feature_name}—>出现。')
+            return True
+
+    def swipe(self, feature_name1, feature_name2, threshold=0.7):
         op_id = None
-        feature1 = self.find_feature(feature_name1, threshold=threshold, target_pos=target_pos)
-        feature2 = self.find_feature(feature_name2, threshold=threshold, target_pos=target_pos)
+        feature1 = self.find_feature(feature_name1, threshold=threshold)
+        feature2 = self.find_feature(feature_name2, threshold=threshold)
         try:
             if feature1 and feature2:
                 op_id = swipe(v1=feature1, v2=feature2)
             else:
-                logger.info(f'拖拽操作失败！屏幕中未找到{feature_name1}或{feature_name2}')
+                logger.error(f'拖拽操作失败！屏幕中未找到{feature_name1}或{feature_name2}')
         except Exception as e:
-            logger.warning(f'拖拽操作失败！错误信息：{e}')
+            logger.error(f'拖拽操作失败！错误信息：{e}')
         if op_id:
+            logger.info(f'{feature_name1}拖拽到{feature_name2}成功。')
             return True
         else:
             return False
 
     def other_operate(self, operate_info: dict):
         try:
-            for key, value in operate_info:
+            for key, value in operate_info.items():
                 if key == 'keyevent':
                     if isinstance(value, list):
                         [keyevent(operate) for operate in value]
+                        logger.info(f'按了{len(value)}次{value[0]}。')
                     elif isinstance(value, str):
                         keyevent(value)
-                elif key == 'set_clipboard':
-                    set_clipboard(value)
+                        logger.info(f'按了1次{value}。')
+                elif key == 'input_by_clipboard':
+                    set_clipboard(content=value)
+                    paste()
+                    logger.info(f'输入{value}。')
                 elif key == 'text':
                     text(value)
+                    logger.info(f'输入{value}。')
+                else:
+                    logger.error('其他操作失败！仅支持keyevent、input_by_clipboard、text')
         except Exception as e:
             logger.warning(f'{operate_info}执行失败！错误信息：{e}')
 
-    def assert_feature_exist(self, feature_name, threshold=0.9, rgb=False, timeout=3):
+    def assert_feature_exist(self, feature_name, threshold=0.8, rgb=True, timeout=3):
         """
         查找元素
         :param feature_name: 定位特征图片名
@@ -301,17 +355,16 @@ class AirtestClient:
         )
         try:
             if template:
-                pos = assert_exists(template)
-                logger.info(f'{feature_name}存在，屏幕坐标为：{pos}。#测试通过#')
+                assert_exists(template)
+                logger.info(f'{feature_name}存在。【测试通过】')
                 return True
-        except Exception as e:
-            logger.info(f'{feature_name}存在。#测试失败#')
-            logger.warning(e)
+        except:
+            logger.error(f'{feature_name}不存在。【测试失败】')
             return False
         finally:
             ST.FIND_TIMEOUT = self.find_timeout
 
-    def assert_feature_not_exist(self, feature_name, threshold=0.9, rgb=False, timeout=3):
+    def assert_feature_not_exist(self, feature_name, threshold=0.8, rgb=True, timeout=3):
         """
         查找元素
         :param feature_name: 定位特征图片名
@@ -329,10 +382,10 @@ class AirtestClient:
         try:
             if template:
                 pos = assert_not_exists(template)
-                logger.info(f'{feature_name}存在，屏幕坐标为：{pos}。#测试失败#')
+                logger.error(f'{feature_name}存在，屏幕坐标为：{pos}。【测试失败】')
                 return False
         except:
-            logger.info(f'{feature_name}不存在。#测试通过#')
+            logger.info(f'{feature_name}不存在。【测试通过】')
             return True
 
     def take_screenshot(self, filename=None):
