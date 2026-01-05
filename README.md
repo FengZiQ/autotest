@@ -85,7 +85,10 @@ autotest/
     # 运行并在第一个失败后停止
     pytest -x --tb=short
 
-## 2、ui自动化
-    在运行calculator ui自动化报”import win32api ImportError: DLL load failed: 找不到指定的程序。“，请安装：
+## 3、airtest测试工具使用相关
+### 1）[测试用例编写](https://github.com/FengZiQ/autotest/blob/main/docs/tests_data_for_Windows.json)
+    
+### 2）测试windows app注意点
+    程序报”import win32api ImportError: DLL load failed: 找不到指定的程序。“，请安装：
     https://aka.ms/vs/17/release/vc_redist.x64.exe
 
