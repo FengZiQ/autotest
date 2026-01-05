@@ -19,40 +19,30 @@
         "step_name": "自定义时间开始输入2025-08-01",
         "step_number": "3",
         "action_info": {
-            "action": "其他操作",
-            "operate_info": {
-                "input_by_clipboard": "2025-08-01"
-            }
+            "action": "剪贴板输入",
+            "input_text": "2025-08-01"
         }
     },
     {
         "step_name": "按tab键",
         "step_number": "4",
         "action_info": {
-            "action": "其他操作",
-            "operate_info": {
-                "keyevent": "{TAB}"
-            }
+            "action": "TAB"
         }
     },
     {
         "step_name": "自定义时间结束输入2025-08-31",
         "step_number": "5",
         "action_info": {
-            "action": "其他操作",
-            "operate_info": {
-                "input_by_clipboard": "2025-08-31"
-            }
+            "action": "剪贴板输入",
+            "input_text": "2025-08-31"
         }
     },
         {
-        "step_name": "按tab键",
+        "step_name": "按回车",
         "step_number": "6",
         "action_info": {
-            "action": "其他操作",
-            "operate_info": {
-                "keyevent": "{ENTER}"
-            }
+            "action": "回车"
         }
     },
     {
@@ -64,7 +54,7 @@
         },
         "expected_results": [
             {
-                "assert_form": "存在特征",
+                "assert_form": "不存在特征",
                 "feature_name": "断言_废标案例_江苏省_发布时间与业务地区组合查询校验通过"
             }
         ]

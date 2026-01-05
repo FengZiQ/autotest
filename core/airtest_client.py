@@ -119,7 +119,7 @@ class AirtestClient:
             )
             pos = exists(template)
             if pos:
-                logger.debug(f'{feature_name}屏幕坐标为：{pos}')
+                logger.debug(f'{feature_name}，屏幕坐标为：{pos}')
                 return template
             else:
                 return False
@@ -316,7 +316,7 @@ class AirtestClient:
         else:
             return False
 
-    def other_operate(self, operate_info: dict):
+    def other_operate(self, operate_info: dict, time_sleep: int):
         try:
             for key, value in operate_info.items():
                 if key == 'keyevent':
@@ -325,13 +325,16 @@ class AirtestClient:
                         logger.info(f'按了{len(value)}次{value[0]}。')
                     elif isinstance(value, str):
                         keyevent(value)
+                        time.sleep(time_sleep)
                         logger.info(f'按了1次{value}。')
                 elif key == 'input_by_clipboard':
                     set_clipboard(content=value)
                     paste()
+                    time.sleep(time_sleep)
                     logger.info(f'输入{value}。')
                 elif key == 'text':
                     text(value)
+                    time.sleep(time_sleep)
                     logger.info(f'输入{value}。')
                 else:
                     logger.error('其他操作失败！仅支持keyevent、input_by_clipboard、text')
@@ -349,17 +352,18 @@ class AirtestClient:
         """
         ST.FIND_TIMEOUT = timeout
         ST.THRESHOLD_STRICT = threshold
-        template = self.find_feature(
-            feature_name=get_path(self.assert_feature_dir, feature_name + ".png"),
-            rgb=rgb
-        )
         try:
-            if template:
-                assert_exists(template)
-                logger.info(f'{feature_name}存在。【测试通过】')
+            if assert_exists(
+                Template(
+                    filename=get_path(self.assert_feature_dir, feature_name + ".png"),
+                    threshold=threshold,
+                    rgb=rgb
+                )
+            ):
+                logger.info(f'{feature_name}验证成功。【测试通过】')
                 return True
         except:
-            logger.error(f'{feature_name}不存在。【测试失败】')
+            logger.error(f'{feature_name}验证失败！【测试失败】')
             return False
         finally:
             ST.FIND_TIMEOUT = self.find_timeout
@@ -375,18 +379,20 @@ class AirtestClient:
         """
         ST.FIND_TIMEOUT_TMP = timeout
         ST.THRESHOLD_STRICT = threshold
-        template = self.find_feature(
-            feature_name=get_path(self.assert_feature_dir, feature_name + ".png"),
-            rgb=rgb
-        )
         try:
-            if template:
-                pos = assert_not_exists(template)
-                logger.error(f'{feature_name}存在，屏幕坐标为：{pos}。【测试失败】')
-                return False
-        except:
-            logger.info(f'{feature_name}不存在。【测试通过】')
+            assert_not_exists(
+                Template(
+                    filename=get_path(self.assert_feature_dir, feature_name + ".png"),
+                    threshold=threshold,
+                    rgb=rgb
+                )
+            )
+            logger.info(f'{feature_name}验证成功。【测试通过】')
             return True
+        except AssertionError:
+            logger.error(f'{feature_name}验证失败！【测试失败】')
+            return False
+
 
     def take_screenshot(self, filename=None):
         """

@@ -1,13 +1,14 @@
 # 项目目录
 autotest/  
 ├── config/ —> 配置目录  
-│   └── airtest_config.py —> airtest配置ST值设置  
 │   └── android_config.py —> Android App测试设置  
 │   └── windows_app_config.py —> Windows应用测试配置  
 │   └── api_test_plan.py —> 接口测试计划  
 │   └── android_test_plan.py —> Android App测试计划  
+│   └── windows_test_plan.py —> Windows App测试计划  
 ├── core/ —> 测试工具库  
-│   └── windows_client.py —> Windows应用测试工具类  
+│   └── airtest_client.py —> airtest测试工具类  
+│   └── airtest_executor.py —> airtest测试工具测试执行器  
 │   └── http_client.py —> 接口测试工具类  
 │   └── api_test_executor.py —> 接口测试执行器  
 │   └── android_client.py —> Android App测试工具类  
@@ -26,10 +27,9 @@ autotest/
 │   ├── logs/  —>日志目录  
 │   ├── screenshots/  —>测试失败后截图目录  
 ├── resources/ —> 资源库  
-│   ├── image/ —> 存放应用不同模块操作按钮的截图目录  
-│   │    ├── calculator_button/ —> windows系统计算器按钮截图目录  
-│   │    ├── calculator_assert/ —> 计算器测试断言截图目录  
-├── tests_data/ —> 测试数据  
+│   ├── image/ —> 图片资源目录  
+│   │    ├── android_app/ —> android app按钮截图及断言截图目录  
+│   │    ├── windows_app/ —> windows app按钮截图及断言截图目录
 ├── tests/ —> 测试入口  
 │   ├── Android/  —>Android App测试入口  
 │       └── conftest.py —> Android App测试相关的夹具配置  
@@ -37,9 +37,10 @@ autotest/
 │   ├── API/  —>API测试入口  
 │       └── conftest.py —> API测试相关的夹具配置  
 │       └── test_entrance.py —> API测试入口  
-│   ├── UI/  —>UI测试入口  
-│       └── conftest.py —> UI测试相关的夹具配置  
-│       └── test_calculator_demo.py —> 测试计算器的一个示例  
+│   ├── Windows/  —>Windows App测试入口 
+│       └── conftest.py —> Windows App测试相关的夹具配置  
+│       └── test_windows_app_entrance.py —> Windows App测试入口  
+├── tests_data/ —> 测试用例集数据  
 ├── utils/ —> 工具函数  
 │   └── file_utils.py  
 │   └── kill_process.py  

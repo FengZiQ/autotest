@@ -50,6 +50,7 @@ class AirtestTestExecutor:
             'assertions': [],
             'error': None
         }
+        print(step_result)
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         try:
@@ -63,15 +64,15 @@ class AirtestTestExecutor:
                     threshold=step_result['action_info'].get('threshold', 0.7),
                     target_pos=step_result['action_info'].get('target_pos', 5),
                     rgb=step_result['action_info'].get('rgb', False),
-                    right_click=step_result['action_info'].get('right_click', False),
+                    right_click=step_result['action_info'].get('right_click', False)
                 )
-            elif step_result['action_info'].get('action') == '输入':
+            elif step_result['action_info'].get('action') == '点击并输入':
                 action_success = self.airtest_tool.input_text(
                     feature_name=step_result['action_info'].get('feature_name'),
                     threshold=step_result['action_info'].get('threshold', 0.7),
                     target_pos=step_result['action_info'].get('target_pos', 5),
                     input_text=step_result['action_info'].get('input_text', ''),
-                    time_sleep=step_result['action_info'].get('time_sleep', 0.5),
+                    time_sleep=step_result['action_info'].get('time_sleep', 0.5)
                 )
             elif step_result['action_info'].get('action') == '特征出现后点击':
                 action_success = self.airtest_tool.click_if_feature(
@@ -80,7 +81,7 @@ class AirtestTestExecutor:
                     threshold=step_result['action_info'].get('threshold', 0.7),
                     target_pos=step_result['action_info'].get('target_pos', 5),
                     right_click=step_result['action_info'].get('right_click', False),
-                    timeout=step_result['action_info'].get('timeout', 15),
+                    timeout=step_result['action_info'].get('timeout', 15)
                 )
             elif step_result['action_info'].get('action') == '特征消失后点击':
                 action_success = self.airtest_tool.click_if_not_feature(
@@ -89,27 +90,57 @@ class AirtestTestExecutor:
                     threshold=step_result['action_info'].get('threshold', 0.7),
                     target_pos=step_result['action_info'].get('target_pos', 5),
                     right_click=step_result['action_info'].get('right_click', False),
-                    timeout=step_result['action_info'].get('timeout', 15),
+                    timeout=step_result['action_info'].get('timeout', 15)
                 )
             elif step_result['action_info'].get('action') == '滑动找到特征':
                 action_success = self.airtest_tool.scroll_until_feature(
                     feature_name=step_result['action_info'].get('feature_name'),
                     scroll_value=step_result['action_info'].get('scroll_value', 0),
                     threshold=step_result['action_info'].get('threshold', 0.7),
-                    timeout=step_result['action_info'].get('timeout', 15),
+                    timeout=step_result['action_info'].get('timeout', 15)
                 )
             elif step_result['action_info'].get('action') == '拖拽':
                 action_success = self.airtest_tool.swipe(
                     feature_name1=step_result['action_info'].get('feature_name1'),
                     feature_name2=step_result['action_info'].get('feature_name2'),
-                    threshold=step_result['action_info'].get('threshold', 0.7),
+                    threshold=step_result['action_info'].get('threshold', 0.7)
                 )
-            elif step_result['action_info'].get('action') == '其他操作':
-                # 其他操作不截图
+            elif step_result['action_info'].get('action') == '输入':
+                # 设置action_success为True，操作不截图
                 action_success = True
-
+                # 有times参数，按times次TAB键后再输入
+                if step_result['action_info'].get('times', 0) > 0:
+                    self.airtest_tool.other_operate(
+                        {'keyevent': ['{TAB}' for i in range(step_result['action_info'].get('times', 0))]},
+                        time_sleep=step_result['action_info'].get('time_sleep', 0.5),
+                    )
                 self.airtest_tool.other_operate(
-                    step_result['action_info'].get('operate_info')
+                    {'text': step_result['action_info'].get('input_text', '')},
+                    time_sleep=step_result['action_info'].get('time_sleep', 0.5),
+                )
+            elif step_result['action_info'].get('action') == '剪贴板输入':
+                # 设置action_success为True，操作不截图
+                action_success = True
+                # 给剪贴板赋值后粘贴输入
+                self.airtest_tool.other_operate(
+                    {'input_by_clipboard': step_result['action_info'].get('input_text', '')},
+                    time_sleep=step_result['action_info'].get('time_sleep', 0.5),
+                )
+            elif step_result['action_info'].get('action') == '回车':
+                # 设置action_success为True，操作不截图
+                action_success = True
+                # 按times次回车
+                self.airtest_tool.other_operate(
+                    {'keyevent': ['{ENTER}' for i in range(step_result['action_info'].get('times', 1))]},
+                    time_sleep=step_result['action_info'].get('time_sleep', 0.5),
+                )
+            elif step_result['action_info'].get('action') == 'TAB':
+                # 设置action_success为True，操作不截图
+                action_success = True
+                # 按times次Tab
+                self.airtest_tool.other_operate(
+                    {'keyevent': ['{TAB}' for i in range(step_result['action_info'].get('times', 1))]},
+                    time_sleep=step_result['action_info'].get('time_sleep', 0.5),
                 )
 
             step_result['action_success'] = action_success
@@ -181,7 +212,7 @@ class AirtestTestExecutor:
                 )
             elif assertion.get('assert_form', '') == '不存在特征':
                 result = self.airtest_tool.assert_feature_not_exist(
-                    feature_name=assertion.get('feature_nam', ''),
+                    feature_name=assertion.get('feature_name', ''),
                     threshold=assertion.get('threshold', 0.8),
                 )
             else:
@@ -252,27 +283,4 @@ class AirtestTestExecutor:
 
         return test_case_result
 
-
-# 使用示例
-if __name__ == "__main__":
-    import os
-
-    # 创建工具实例
-    client = AirtestClient(os.getenv('a_path'))
-
-    try:
-        client.start_windows_app()
-        client.connect_windows_app(title=os.getenv('a_title'))
-        client.app_feature_dir = r''
-        client.assert_feature_dir = r''
-        # 创建测试执行器
-        executor = AirtestTestExecutor(client)
-
-        # 执行测试用例
-        test_result = executor.execute_test_case('废标案例_江苏省.json')
-
-    finally:
-        # 关闭app
-        print('关闭app')
-        # client.close_windows_app(title=os.getenv('a_title'))
 

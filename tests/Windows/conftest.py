@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-import logging
 import pytest
-import datetime
 from pytest_html import extras
 from core.airtest_client import AirtestClient
 from core.airtest_executor import AirtestTestExecutor
@@ -26,8 +24,8 @@ def app_8():
 def app_a():
     # 启动应用
     client_a = AirtestClient(os.getenv('a_path'))
-    client_a.app_feature_dir = r'C:\fzq\project\geb8_autoproject\tests\geba\pictures'
-    client_a.assert_feature_dir = r'C:\fzq\project\geb8_autoproject\tests\geba\pictures'
+    client_a.app_feature_dir = r''
+    client_a.assert_feature_dir = r''
     client_a.start_windows_app()
     client_a.connect_windows_app(title=os.getenv('a_title'))
 

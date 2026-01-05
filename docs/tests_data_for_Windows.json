@@ -1,0 +1,139 @@
+[
+    {
+        "step_name": "点击 特征图片",
+        "step_number": "1",
+        "action_info": {
+            "action": "点击",
+            "feature_name": "特征图片名",
+
+            "threshold": "匹配特征精度值0~1。默认0.7",
+            "target_pos": "点击位置值整数1-9，默认值为5点击中心位置",
+            "rgb": "识别结果是否使用rgb三通道进行校验，布尔类型，默认False",
+            "right_click": "是否右键，布尔类型，默认False点击左键"
+        }
+    },
+
+    {
+        "step_name": "点击 特征图片 输入文本",
+        "step_number": "1",
+        "action_info": {
+            "action": "点击并输入",
+            "feature_name": "特征图片名",
+            "input_text": "输入的文本",
+
+            "time_sleep": "输入文本后睡眠时间，浮点类型，默认值0.5",
+            "threshold": 0.7,
+            "target_pos": 5
+        }
+    },
+
+    {
+        "step_name": "特征图片1 出现后点击 特征图片2",
+        "step_number": "1",
+        "action_info": {
+            "action": "特征出现后点击",
+            "if_feature": "特征图片名1",
+            "feature_name": "特征图片名2",
+
+            "timeout": "等待 特征图片名1 的时间，浮点类型，默认值15",
+            "threshold": 0.7,
+            "target_pos": 5,
+            "right_click": false
+        }
+    },
+
+    {
+        "step_name": "特征图片1 消失后点击 特征图片2",
+        "step_number": "1",
+        "action_info": {
+            "action": "特征消失后点击",
+            "if_feature": "特征图片名1",
+            "feature_name": "特征图片名2",
+
+            "timeout": "等待 特征图片名1 的时间，浮点类型，默认值15",
+            "threshold": 0.7,
+            "target_pos": 5,
+            "right_click": false
+        }
+    },
+
+    {
+        "step_name": "上下滚动页面直到出现 特征图片",
+        "step_number": "1",
+        "action_info": {
+            "action": "滑动找到特征",
+            "scroll_value": "负值向下滑动，正值向上滑动。数据类型为int",
+            "feature_name": "特征图片名",
+
+            "timeout": "找 特征图片 的时间，超时后停止滚动，浮点类型，默认值15",
+            "threshold": 0.7
+        }
+    },
+
+    {
+        "step_name": "拖拽 特征图片1 到 特征图片2 的位置",
+        "step_number": "2",
+        "action_info": {
+            "action": "拖拽",
+            "feature_name1": "特征图片名1",
+            "feature_name2": "特征图片名2",
+
+            "threshold": 0.7
+        }
+    },
+
+    {
+        "step_name": "按n次TAB键后输入文本",
+        "step_number": "1",
+        "action_info": {
+            "action": "输入",
+            "input_text": "输入的文本",
+
+            "times": "按TAB键的次数值为正整数，默认为0",
+            "time_sleep": "输入文本后睡眠时间，浮点类型，默认值0.5"
+        }
+    },
+
+    {
+        "step_name": "给剪贴板设置值并粘贴",
+        "step_number": "1",
+        "action_info": {
+            "action": "剪贴板输入",
+            "input_text": "输入的文本",
+
+            "time_sleep": "输入文本后睡眠时间，浮点类型，默认值0.5"
+        }
+    },
+
+    {
+        "step_name": "按回车",
+        "step_number": "1",
+        "action_info": {
+            "action": "回车",
+
+            "times": "按回车键的次数值为正整数，默认为1"
+        }
+    },
+
+    {
+        "step_name": "按TAB",
+        "step_number": "1",
+        "action_info": {
+            "action": "TAB",
+
+            "times": "按TAB键的次数值为正整数，默认为1"
+        }
+    },
+
+    {
+        "step_name": "",
+        "step_number": "",
+        "action_info": {},
+        "expected_results": [
+            {
+                "assert_form": "断言方式值为：存在特征/不存在特征",
+                "feature_name": "特征图片名。建议命名使用业务相关的描述并以“结果”，如：xx页发布时间查询结果"
+            }
+        ]
+    }
+]
