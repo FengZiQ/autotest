@@ -38,12 +38,8 @@
             "input_text": "2025-08-31"
         }
     },
-        {
-        "step_name": "按回车",
-        "step_number": "6",
-        "action_info": {
-            "action": "回车"
-        }
+    {
+        "_reference": "Enter.json"
     },
     {
         "step_name": "业务地区选盐城市",
@@ -54,7 +50,7 @@
         },
         "expected_results": [
             {
-                "assert_form": "不存在特征",
+                "assert_form": "存在特征",
                 "feature_name": "断言_废标案例_江苏省_发布时间与业务地区组合查询校验通过"
             }
         ]

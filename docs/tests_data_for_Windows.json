@@ -1,5 +1,6 @@
 [
     {
+        "image_path": "非必传，为特征图片的目录路径，用以支持特征图片结构化存储",
         "step_name": "点击 特征图片",
         "step_number": "1",
         "action_info": {

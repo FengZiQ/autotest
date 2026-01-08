@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-import json
 import logging
 import traceback
 from datetime import datetime
 from typing import Dict, List, Any
 from utils.path_util import get_path
 from core.airtest_client import AirtestClient
+from core.reference_step import handel_references
 
 logger = logging.getLogger('airtest_executor')
 
@@ -22,15 +22,16 @@ class AirtestTestExecutor:
 
     def load_test_case(self, json_file_path: str) -> List[Dict[str, Any]]:
         """
-        加载测试用例JSON文件
+        加载测试用例JSON文件，支持引用其他JSON文件
         :param json_file_path: JSON文件路径
         :return: 测试用例步骤列表
         """
         try:
+            # 获取完整路径
             full_path = get_path('tests_data', 'Windows', json_file_path)
-            with open(full_path, 'r', encoding='utf-8') as file:
-                test_case = json.load(file)
-            return test_case
+
+            # 递归加载JSON文件并处理引用
+            return handel_references(full_path)
         except Exception as e:
             logger.error(f"加载测试用例失败: {str(e)}")
             raise
@@ -39,10 +40,10 @@ class AirtestTestExecutor:
         """
         执行单个测试步骤
         :param step: 测试步骤字典
-        :param case_name: 测试用例名称
         :return: 执行结果
         """
         step_result = {
+            'image_path': step.get('image_path', ''),
             'step_name': step.get('step_name', '未知步骤'),
             'step_number': step.get('step_number', '0'),
             'action_info': step.get('action_info', {}),
@@ -50,7 +51,8 @@ class AirtestTestExecutor:
             'assertions': [],
             'error': None
         }
-        print(step_result)
+        if step_result['image_path']:
+            self.airtest_tool.app_feature_dir += step_result['image_path']
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         try:
