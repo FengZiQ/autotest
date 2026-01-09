@@ -1,13 +1,8 @@
 [
         {
-            "case_name": "下单",
             "step_number": "1",
             "actions": {
-                "method": "POST",
-                "url_path": "/order/create",
-                "headers": {
-                    "content-type": "application/json"
-                },
+                "_interface": "order_service/orderCreate.json",
                 "data": {
                     "address": "西安市鱼化寨街道",
                     "goods": "货物",

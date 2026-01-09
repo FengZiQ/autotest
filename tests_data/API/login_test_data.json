@@ -1,13 +1,8 @@
 [
         {
-            "case_name": "获取用户信息",
             "step_number": "1",
             "actions": {
-                "method": "POST",
-                "url_path": "/gbsp/auth/userlogin",
-                "headers": {
-                    "content-type": "application/json"
-                },
+                "_interface": "user_center/login.json",
                 "data": {
                     "password": "test123@",
                     "userName": "13717641870"
@@ -36,12 +31,7 @@
         {
             "step_number": "2",
             "actions": {
-                "method": "GET",
-                "url_path": "/gbsp/user/getUserInfo",
-                "headers": {
-                    "content-type": "application/x-www-form-urlencoded",
-                    "Authorization": "Bearer ${access_token}"
-                },
+                "_interface": "user_center/getUserInfo.json",
                 "params": {
                     "deviceId": "",
                     "type": ""

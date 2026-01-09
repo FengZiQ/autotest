@@ -3,11 +3,7 @@
             "case_name": "无效账号登录",
             "step_number": "1",
             "actions": {
-                "method": "POST",
-                "url_path": "/gbsp/auth/userlogin",
-                "headers": {
-                    "content-type": "application/json"
-                },
+                "_interface": "user_center/login.json",
                 "data": {
                     "password": "test123@",
                     "userName": "137176418701"

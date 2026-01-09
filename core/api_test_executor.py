@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
-import json
 import re
+import json
 import logging
+import traceback
+from typing import Dict, List, Any
+from utils.path_util import get_path
+from core.reference_step import handel_references
 from core.http_client import HTTPClient, APIAssert
 
 logger = logging.getLogger('api_test_executor')
@@ -16,6 +20,7 @@ class TestCaseExecutor:
         """
         self.http_client = HTTPClient(base_url=base_url, timeout=timeout)
         self.assert_tool = APIAssert()
+        self.test_results = []
         self.context = {}  # 用于存储提取的变量
         self.response = None
 
@@ -74,15 +79,45 @@ class TestCaseExecutor:
         except Exception as e:
             logger.warning(f"提取数据时发生错误: {str(e)}")
 
+    def load_test_case(self, json_file_path: str) -> List[Dict[str, Any]]:
+        """
+        加载测试用例JSON文件，支持引用其他JSON文件
+        :param json_file_path: JSON文件路径
+        :return: 测试用例步骤列表
+        """
+        try:
+            # 获取完整路径
+            case_path = get_path('tests_data', 'API', json_file_path)
+
+            # 处理引用并加载测试用例
+            test_case = handel_references(case_path)
+
+            # 替换_interface字段为接口参数
+            for i in range(len(test_case)):
+
+                interface = test_case[i].get('actions', {}).get('_interface', None)
+
+                if not interface:
+                    logger.error(f"测试用例第{i+1}步缺少_interface字段。")
+                    raise ValueError(f"测试用例第{i+1}步缺少_interface字段。")
+
+                with open(get_path('resources', 'api_interface', interface), 'r', encoding='utf-8') as f:
+                    test_case[i]['actions']['_interface'] = json.load(f)
+
+            return test_case
+        except Exception as e:
+            logger.error(f"加载测试用例失败: {str(e)}")
+            raise
+
     def send_requests(self, action):
         """
         执行单个接口请求
         :param action: 接口动作配置
         :return: 响应对象
         """
-        method = action.get('method', '').upper()
-        url_path = action.get('url_path', '')
-        headers = action.get('headers', {})
+        method = action.get('_interface').get('method', '').upper()
+        url_path = action.get('_interface').get('url_path', '')
+        headers = action.get('_interface').get('headers', {})
         data = action.get('data', None)
         params = action.get('params', None)
         extract_rules = action.get('extract', None)
@@ -182,47 +217,60 @@ class TestCaseExecutor:
 
         return assert_flag
 
-    def execute_test_case(self, test_case_datas, case_name="未命名测试用例"):
+    def execute_test_case(self, json_file_path: str):
         """
         执行测试用例
-        :param test_case_datas: 测试用例数据
-        :param case_name: 测试用例名称
+        :param json_file_path: 测试用例数据
         """
+        case_name = json_file_path[:-5]
+
         logger.info(f"{'=' * 50}")
         logger.info(f"开始执行测试用例: {case_name}")
         logger.info(f"{'=' * 50}")
 
-        if not isinstance(test_case_datas, list):
-            logger.warning(f'收集的测试用例数据不是list类型，测试用例{case_name}执行结束！')
-            self.assert_tool.FailedFlag = False
+        test_case_result = {
+            'test_case': json_file_path,
+            'total_steps': 0,
+            'passed_steps': 0,
+            'failed_steps': 0,
+            'step_results': [],
+            'overall_success': False
+        }
 
-        # 重置上下文（可选，根据需求决定是否在用例间重置）
-        # self.context = {}
+        try:
+            # 加载测试用例
+            test_steps = self.load_test_case(json_file_path)
+            test_case_result['total_steps'] = len(test_steps)
 
-        for tcd in test_case_datas:
-            # 在测试用例数据中找出actions与expected_results
-            actions = tcd.get('actions', [])
-            expected_results = tcd.get('expected_results', {})
+            # 执行每个步骤
+            for step in test_steps:
+                step_result = self.send_requests(step.get('actions', {}))
+                test_case_result['step_results'].append(step_result)
 
-            logger.info(f"--- 执行步骤 {tcd.get('step_number')} ---")
+                # 统计成功/失败的步骤
+                if step_result['action_success'] and all(
+                        assertion['success'] for assertion in step_result['assertions']):
+                    test_case_result['passed_steps'] += 1
+                else:
+                    test_case_result['failed_steps'] += 1
 
-            # 发送请求
-            response = self.send_requests(actions)
+            # 判断整体测试结果
+            test_case_result['overall_success'] = test_case_result['failed_steps'] == 0
 
-            # 如果某个步骤失败，可以选择终止执行
-            if not response:
-                logger.warning(f"步骤 {tcd.get('step_number')} 执行失败，终止测试")
-                self.assert_tool.FailedFlag = False
-                break
-
-            if response:
-                logger.info(f"--- 步骤 {tcd.get('step_number')} 执行断言 ---")
-                self.perform_assertion(expected_results)
+            # 记录测试结果
+            if test_case_result['overall_success']:
+                logger.info(f"测试用例【{case_name}】执行成功.")
             else:
-                logger.warning(f"步骤 {tcd.get('step_number')} 无法断言，请检查断言方式与响应结果是否匹配！")
-                self.assert_tool.FailedFlag = False
+                logger.warning(f"测试用例【{case_name}】执行失败!")
 
-        logger.info(f"测试用例执行完成: {case_name}")
+        except Exception as e:
+            logger.error(f"执行测试用例{case_name}时发生异常: {str(e)}")
+            logger.error(traceback.format_exc())
+            test_case_result['overall_success'] = False
+            test_case_result['error'] = str(e)
+        # logger.debug(f'测试用例 {case_name} 执行结果: {test_case_result}')
+
+        return test_case_result
 
     def close(self):
         """关闭HTTP客户端"""
@@ -231,50 +279,9 @@ class TestCaseExecutor:
 
 # 使用示例
 if __name__ == "__main__":
-    # 单接口测试用例数据
-    test_case_data = [
-        {
-            "case_name": "订单查询",
-            "step_number": "1",
-            "actions": {
-                "method": "GET",
-                "url_path": "/order/getInfo",
-                "headers": {
-                    "content-type": "application/json"
-                },
-                "params": {
-                    "orderId": "${order_id}"
-                }
-            },
-            "expected_results": {
-                "assert_form": "response_json_structure",
-                "assert_data": {
-                    "code": 200,
-                    "success": True,
-                    "data": {
-                        "orderId": 200000,
-                        "orderNumber": "D20251104ID200000",
-                        "address": "西安市鱼化寨街道",
-                        "goods": "货物",
-                        "customerInfo": {
-                            "userId": 253262,
-                            "userName": "测试账户",
-                            "mobile": "13700000000"
-                        }
-                    }
-                }
-            }
-        }
-    ]
+
     # 创建执行器实例
     executor = TestCaseExecutor(base_url="http://127.0.0.1:5000")  # 替换为实际的base_url
 
-    try:
-        executor.context = {'order_id': 6787111}
-        # 执行单接口测试
-        executor.execute_test_case(test_case_data, "用户登录接口测试")
-
-    finally:
-        # 关闭连接
-        executor.close()
-
+    a= executor.load_test_case('query_order.json')
+    print(json.dumps(a, ensure_ascii=False, indent=4))

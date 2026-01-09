@@ -1,0 +1,7 @@
+{
+  "method": "POST",
+  "url_path": "/gbsp/auth/userlogin",
+  "headers": {
+      "content-type": "application/json"
+  }
+}

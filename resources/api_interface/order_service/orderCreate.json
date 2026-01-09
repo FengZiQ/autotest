@@ -1,0 +1,7 @@
+{
+  "method": "POST",
+  "url_path": "/order/create",
+  "headers": {
+      "content-type": "application/json"
+  }
+}

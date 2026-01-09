@@ -111,7 +111,7 @@ class TestPlatform:
                 execute_test = ''
 
             # 构建文件路径
-            file_path = os.path.join(self.base_dir, 'tests', project_name, 'test_entrance.py')
+            file_path = os.path.join(self.base_dir, 'tests', project_name, 'test_api_entrance.py')
             # 组合成 pytest 可识别的格式
             test_command = f"pytest {file_path}::TestExecute::{execute_test}"
 
