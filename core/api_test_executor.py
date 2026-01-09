@@ -109,9 +109,9 @@ class TestCaseExecutor:
             logger.error(f"加载测试用例失败: {str(e)}")
             raise
 
-    def send_requests(self, action):
+    def execute_step(self, action):
         """
-        执行单个接口请求
+        待完成，参考airtest_executor.py中的execute_step方法
         :param action: 接口动作配置
         :return: 响应对象
         """
@@ -244,7 +244,7 @@ class TestCaseExecutor:
 
             # 执行每个步骤
             for step in test_steps:
-                step_result = self.send_requests(step.get('actions', {}))
+                step_result = self.execute_step(step)
                 test_case_result['step_results'].append(step_result)
 
                 # 统计成功/失败的步骤

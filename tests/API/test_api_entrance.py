@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
 from config.api_test_plan import test_plan
-from utils.path_util import get_path
-from utils.file_utils import reading_json_file as load_test_data
 
 
 class TestExecute:
