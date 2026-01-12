@@ -9,7 +9,7 @@ autotest/
 ├── core/ —> 测试工具库  
 │   └── airtest_client.py —> airtest测试工具类  
 │   └── airtest_executor.py —> airtest测试工具测试执行器  
-│   └── http_client.py —> 接口测试工具类  
+│   └── api_test_client.py —> 接口测试工具类  
 │   └── api_test_executor.py —> 接口测试执行器  
 │   └── android_client.py —> Android App测试工具类  
 │   └── android_test_executor.py —> Android App测试执行器  
@@ -54,11 +54,27 @@ autotest/
 
 # 说明
     
-## 1、不使用测试平台
-### 1）tests_data目录下级目录名为测试计划名,下级目录内容为该测试计划下的测试用例.
-### 2) 测试计划变动时需要维护test_entrance.py文件
+## 1、设计理念
+### 1） 测试计划配置化
+    测试计划均在config目录下进行配置，支持多种测试计划组合，方便灵活。设计灵感来自testlink的测试计划与测试用例管理。
+### 2) 一个测试计划对应test_*_entrance.py文件中的一个测试方法
+    例如：config/api_test_plan.py有smoke鱼all_fun，在tests/API/test_api_entrance.py中对应有一个test_execute_plan_smoke测试方法。
+### 3） 测试用例数据与测试代码分离
+    测试用例数据均存放在tests_data目录下，方便测试用例的维护与管理。
+### 4） 测试用例数据json化
+    方便对接AI生成测试用例数据。
 
-## 2、pytest快捷执行命令
+## 2、API接口测试工具使用相关
+### 1）[测试用例编写](https://github.com/FengZiQ/autotest/blob/main/docs/tests_data_for_API.json)
+
+## 3、airtest测试工具使用相关
+### 1）[测试用例编写](https://github.com/FengZiQ/autotest/blob/main/docs/tests_data_for_Windows.json)
+    
+### 2）测试windows app注意点
+    程序报”import win32api ImportError: DLL load failed: 找不到指定的程序。“，请安装：
+    https://aka.ms/vs/17/release/vc_redist.x64.exe
+
+## 4、pytest快捷执行命令
 ### 1）运行所有单接口测试
     pytest test_entrance.py -v
 ### 2）执行标记为 smoke 的用例
@@ -85,10 +101,4 @@ autotest/
     # 运行并在第一个失败后停止
     pytest -x --tb=short
 
-## 3、airtest测试工具使用相关
-### 1）[测试用例编写](https://github.com/FengZiQ/autotest/blob/main/docs/tests_data_for_Windows.json)
-    
-### 2）测试windows app注意点
-    程序报”import win32api ImportError: DLL load failed: 找不到指定的程序。“，请安装：
-    https://aka.ms/vs/17/release/vc_redist.x64.exe
 

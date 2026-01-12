@@ -1,6 +1,5 @@
 [
         {
-            "step_number": "1",
             "actions": {
                 "_interface": "user_center/login.json",
                 "data": {
@@ -13,7 +12,7 @@
                 }
             },
             "expected_results": {
-                "assert_form": "response_json_structure",
+                "assert_form": "响应体结构一致",
                 "assert_data": {
                     "success": true,
                     "code": 200,
@@ -29,7 +28,6 @@
             }
         },
         {
-            "step_number": "2",
             "actions": {
                 "_interface": "user_center/getUserInfo.json",
                 "params": {
@@ -38,7 +36,7 @@
                 }
             },
             "expected_results": {
-                "assert_form": "response_text_contents",
+                "assert_form": "响应体内容包含",
                 "assert_data": "\"userId\": \"1076249187848705\""
             }
         }

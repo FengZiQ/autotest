@@ -1,6 +1,5 @@
 [
         {
-            "step_number": "1",
             "actions": {
                 "_interface": "order_service/orderCreate.json",
                 "data": {
@@ -17,7 +16,7 @@
                 }
             },
             "expected_results": {
-                "assert_form": "response_json_structure",
+                "assert_form": "响应体结构一致",
                 "assert_data": {
                     "success": true,
                     "code": 200,

@@ -7,16 +7,7 @@ import logging
 logger = logging.getLogger('http_client')
 
 
-def _replace_placeholders(text, context):
-    """替换文本中的占位符 ${key}"""
-    if not context or not text:
-        return text
-
-    pattern = r'\$\{([^}]+)\}'
-    return re.sub(pattern, lambda match: str(context.get(match.group(1), match.group(0))), text)
-
-
-class HTTPClient:
+class APITestClient:
     def __init__(self, base_url='', default_headers=None, timeout=10):
         """
         初始化 HTTP 客户端
@@ -28,6 +19,7 @@ class HTTPClient:
         self.default_headers = default_headers or {'Content-Type': 'application/json'}
         self.timeout = timeout
         self.session = requests.Session()  # 创建会话保持连接
+        self.response = None
 
     def _send_request(self, method, url_path, **kwargs):
         """
@@ -69,8 +61,7 @@ class HTTPClient:
         :param params: 查询参数字典
         :return: 响应对象或 None
         """
-        response = self._send_request('GET', url_path, params=params, **kwargs)
-        return response
+        self.response = self._send_request('GET', url_path, params=params, **kwargs)
 
     def post(self, url_path, data=None, json_data=None, **kwargs):
         """
@@ -85,8 +76,7 @@ class HTTPClient:
             kwargs['json'] = json_data
         elif data is not None:
             kwargs['data'] = data
-        response = self._send_request('POST', url_path, **kwargs)
-        return response
+        self.response = self._send_request('POST', url_path, **kwargs)
 
     def _replace_dict_placeholders(self, data, context):
         """递归替换字典中的占位符"""
@@ -120,124 +110,72 @@ class HTTPClient:
         """关闭会话连接"""
         self.session.close()
 
-
-class APIAssert:
-    def __init__(self):
-
-        """
-        初始化数据库、Redis连接
-        """
-        self.FailedFlag = False
-
-    def response_status_equal(self, response, expectation=200):
+    def response_status_equal(self, expectation=200):
         """断言响应状态码等于期望值"""
-        assert_result = None
         try:
-            actuality = response.status_code
+            actuality = self.response.status_code
             if actuality == expectation:
                 # logger.info('通过')
                 logger.info('<span style="color: green; font-weight: bold;">通过</span>')
-                self.FailedFlag = True
+                assert_result = True
             else:
                 # logger.info('失败')
                 logger.info('<span style="color: red; font-weight: bold;">失败</span>')
-                self.FailedFlag = False
-            if self.FailedFlag:
-                assert_result = True
-            else:
                 assert_result = False
         except Exception as e:
-            logger.error(f'断言异常!异常信息为：{e}')
             # logger.info('失败')
             logger.info('<span style="color: red; font-weight: bold;">失败</span>')
-            self.FailedFlag = False
-        finally:
-            return assert_result
+            logger.error(f'断言异常!异常信息为：{e}')
+            assert_result = False
 
-    def response_text_contents(self, response, expectation):
+        return assert_result
+
+    def response_text_contents(self, expectation: str):
         """断言响应内容包含期望值"""
-        assert_result = None
         try:
-            actuality = response.text
+            actuality = self.response.text
             if expectation in actuality:
                 # logger.info('通过')
                 logger.info('<span style="color: green; font-weight: bold;">通过</span>')
-                self.FailedFlag = True
+                assert_result = True
             else:
                 # logger.info('失败')
                 logger.info('<span style="color: red; font-weight: bold;">失败</span>')
-                self.FailedFlag = False
-            if self.FailedFlag:
-                assert_result = True
-            else:
                 assert_result = False
         except Exception as e:
-            logger.error(f'断言异常!异常信息为：{e}')
             # logger.info('失败')
             logger.info('<span style="color: red; font-weight: bold;">失败</span>')
-            self.FailedFlag = False
-        finally:
-            return assert_result
+            logger.error(f'断言异常!异常信息为：{e}')
+            assert_result = False
 
-    def response_json_structure(self, response, expectation):
+        return assert_result
+
+    def response_json_structure(self, expectation: dict):
         """断言响应json中的数据结构与期望json数据结构一致"""
-        assert_result = None
         try:
-            actuality = response.json()
+            actuality = self.response.json()
             match, differences = compare_structure(actuality, expectation)
             if match:
                 # logger.info('通过')
                 logger.info('<span style="color: green; font-weight: bold;">通过</span>')
-                self.FailedFlag = True
+                assert_result = True
             else:
                 # logger.info('失败')
                 logger.info('<span style="color: red; font-weight: bold;">失败</span>')
                 logger.info(f'{differences}')
-                self.FailedFlag = False
-
-            if self.FailedFlag:
-                assert_result = True
-            else:
                 assert_result = False
         except Exception as e:
-            logger.error(f'断言异常!异常信息为：{e}')
             # logger.info('失败')
             logger.info('<span style="color: red; font-weight: bold;">失败</span>')
-            self.FailedFlag = False
-        finally:
-            return assert_result
-
-    def response_json_contents(self, response, expectation):
-        """断言响应json中键值对包含期望json中的键值对"""
-        assert_result = None
-        try:
-            actuality = response.json()
-            if expectation.items() <= actuality.items():
-                # logger.info('通过')
-                logger.info('<span style="color: green; font-weight: bold;">通过</span>')
-                self.FailedFlag = True
-            else:
-                # logger.info('失败')
-                logger.info('<span style="color: red; font-weight: bold;">失败</span>')
-                self.FailedFlag = False
-
-            if self.FailedFlag:
-                assert_result = True
-            else:
-                assert_result = False
-        except Exception as e:
             logger.error(f'断言异常!异常信息为：{e}')
-            # logger.info('失败')
-            logger.info('<span style="color: red; font-weight: bold;">失败</span>')
-            self.FailedFlag = False
-        finally:
-            return assert_result
+            assert_result = False
 
-    def equals_key_value(self, response, expectation):
+        return assert_result
+
+    def equals_key_value(self, expectation: dict):
         """断言响应json中键值对与期望结果中的键值对一致"""
-        assert_result = None
         try:
-            actuality = response.json()
+            actuality = self.response.json()
 
             results = []
 
@@ -271,24 +209,19 @@ class APIAssert:
                 # logger.info('失败')
                 logger.info(f'{results}')
                 logger.info('<span style="color: red; font-weight: bold;">失败</span>')
-                self.FailedFlag = False
+                assert_result = False
             else:
                 # logger.info('通过')
                 logger.info('<span style="color: green; font-weight: bold;">通过</span>')
-                self.FailedFlag = True
-
-            if self.FailedFlag:
                 assert_result = True
-            else:
-                assert_result = False
 
         except Exception as e:
-            logger.error(f'断言异常!异常信息为：{e}')
             # logger.info('失败')
             logger.info('<span style="color: red; font-weight: bold;">失败</span>')
-            self.FailedFlag = False
-        finally:
-            return assert_result
+            logger.error(f'断言异常!异常信息为：{e}')
+            assert_result = False
+
+        return assert_result
 
     def databases_equal(self):
         """
@@ -313,6 +246,15 @@ class APIAssert:
         redis中的某个字段值包含期望结果，断言成功
         """
         pass
+
+
+def _replace_placeholders(text, context):
+    """替换文本中的占位符 ${key}"""
+    if not context or not text:
+        return text
+
+    pattern = r'\$\{([^}]+)\}'
+    return re.sub(pattern, lambda match: str(context.get(match.group(1), match.group(0))), text)
 
 
 def compare_structure(actuality, expectation, path=""):
@@ -373,7 +315,3 @@ def compare_structure(actuality, expectation, path=""):
         # 基础类型（str, int, float, bool等）直接返回成功
         return True, "结构一致"
 
-
-# 使用示例
-if __name__ == "__main__":
-    pass

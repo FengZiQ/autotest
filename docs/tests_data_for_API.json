@@ -1,0 +1,67 @@
+[
+    {
+        "actions": {
+            "_interface": "order_service/orderCreate.json  ——> resources目录下的接口路径",
+            "data": {
+                "param1": "POST方法的请求参数，headers中content-type为application/json时提交JSON可序列化对象，否则提交表单数据",
+                "param2": ""
+            },
+            "extract": {
+                "order_id": "基本用法：data.orderId",
+                "order_number": "嵌套数组: data.items[0].name",
+                "str_to_float": "支持类型转换，示例：'price_float': {'path': 'data.price', 'type': float}",
+                "int_to_str": "支持类型转换，示例：'quantity_str': {'path': 'data.quantity', 'type': str}",
+                "$$key": "在上下文中直接设置key"
+            }
+        }
+    },
+
+    {
+        "actions": {
+            "_interface": "order_service/orderGetInfo.json  ——> resources目录下的接口路径",
+            "params": {
+                "param1": "GET方法的请求参数，参数化引用提取的格式见param2",
+                "param2": "${order_id}",
+                "param3": "${order_number}",
+                "param4": "${price_float}",
+                "param5": "${key}"
+            }
+        }
+    },
+
+    {
+        "_reference": "create_order.json  ——> 引用测试用例同级目录中的用例，作为前置或后置操作"
+    },
+
+    {
+        "actions": {},
+        "expected_results": {
+            "assert_form": "响应状态码等于",
+            "assert_data": "值为Int类型，http状态码,如200"
+        }
+    },
+
+    {
+        "actions": {},
+        "expected_results": {
+            "assert_form": "响应体结构一致",
+            "assert_data": "值为dict，比较response.json()与模板一致"
+        }
+    },
+
+    {
+        "actions": {},
+        "expected_results": {
+            "assert_form": "响应体内容包含",
+            "assert_data": "值为str，比较response.text中是否包含该字符串"
+        }
+    },
+
+    {
+        "actions": {},
+        "expected_results": {
+            "assert_form": "响应体有键值对",
+            "assert_data": "值为dict，比较response.json()存在指定结构与对应的值，例如 data.customerInfo.userId: 253262"
+        }
+    }
+]

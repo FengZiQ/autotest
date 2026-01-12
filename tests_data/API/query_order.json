@@ -3,7 +3,6 @@
         "_reference": "create_order.json"
     },
     {
-        "step_number": "2",
         "actions": {
             "_interface": "order_service/orderGetInfo.json",
             "params": {
@@ -11,7 +10,7 @@
             }
         },
         "expected_results": {
-            "assert_form": "equals_key_value",
+            "assert_form": "响应体有键值对",
             "assert_data": {
                 "data.customerInfo.userId": 253262,
                 "data.customerInfo.userName": "测试账户"
