@@ -47,6 +47,8 @@ def log_record(timestamp):
             'api_test_executor',
             'android_client',
             'android_test_executor',
+            'interface_parser',
+            'testcase_generator',
         }
         if record.name not in allowed_names:
             return False

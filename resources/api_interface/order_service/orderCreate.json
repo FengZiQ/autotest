@@ -3,5 +3,24 @@
   "url_path": "/order/create",
   "headers": {
       "content-type": "application/json"
-  }
+  },
+  "data": {
+    "address":  {"type": "string", "required": true},
+    "goods":  {"type": "string", "required": true},
+    "customerInfo": {
+      "userId": {"type": "int", "required": true},
+      "userName": {"type": "string", "required": false},
+      "mobile": {"type": "string", "required": true}
+    }
+  },
+  "response": {
+    "success": {"type": "bool"},
+    "code": {"type": "int"},
+    "message": {"type": "string"},
+    "data": {
+        "orderId": {"type": "int"},
+        "orderNumber": {"type": "string"}
+    }
+  },
+  "description": "根据提供的送货地址、货物和用户信息创建一个新的订单。返回操作与订单信息。"
 }
