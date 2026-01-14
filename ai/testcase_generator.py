@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
 import json
-import logging
 from typing import List, Dict, Any
 from config.ai_config import AIConfig
 from ai.deepseek_client import DeepSeekClient
-
-logger = logging.getLogger('testcase_generator')
 
 
 class TestCaseGenerator:
@@ -33,7 +30,7 @@ class TestCaseGenerator:
         with open(filepath, 'r', encoding='utf-8') as f:
             return json.load(f)
 
-    def generate_testcases(self, interface_path: str, scenarios: List[str] = None) -> Dict[str, Any]:
+    def generate_testcases(self, interface_path: str):
         """
         为接口生成测试用例
 
@@ -47,31 +44,12 @@ class TestCaseGenerator:
         # 加载接口信息
         interface_info = self.load_interface(interface_path)
 
-        if scenarios is None:
-            scenarios = ["正常流程", "边界值测试", "异常情况"]
+        # 调用AI生成测试用例
+        testcases = self.client.generate_testcase(interface_info)
 
-        all_testcases = []
+        return testcases
 
-        for scenario in scenarios:
-            logger.info(f"生成测试场景: {scenario}")
-
-            # 调用AI生成测试用例
-            result = self.client.generate_testcase(interface_info, scenario)
-
-            if "test_cases" in result:
-                all_testcases.extend(result["test_cases"])
-            else:
-                # 如果返回格式不同，尝试直接使用
-                all_testcases.append(result)
-
-        return {"test_cases": all_testcases}
-
-    def save_testcases(
-            self,
-            service_name: str,
-            interface_name: str,
-            testcases: Dict[str, Any]
-    ):
+    def save_testcases(self, service_name: str, interface_name: str, testcases: List):
         """
         保存测试用例到文件
 
@@ -93,5 +71,12 @@ class TestCaseGenerator:
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(testcases, f, ensure_ascii=False, indent=2)
 
-        logger.info(f"测试用例已保存: {filepath}")
+        print(f"测试用例已保存: {filepath}")
         return filepath
+
+
+if __name__ == "__main__":
+    # 简单测试TestCaseGenerator
+    tcg = TestCaseGenerator()
+    tcs = tcg.generate_testcases("user_center/账号密码登录.json")
+    tcg.save_testcases("user_center", "账号密码登录", tcs)

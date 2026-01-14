@@ -5,21 +5,21 @@
       "content-type": "application/json"
   },
   "data": {
-    "address":  {"type": "string", "required": true},
-    "goods":  {"type": "string", "required": true},
+    "address":  {"type": "string", "required": true, "detail": ""},
+    "goods":  {"type": "string", "required": true, "detail": ""},
     "customerInfo": {
-      "userId": {"type": "int", "required": true},
-      "userName": {"type": "string", "required": false},
-      "mobile": {"type": "string", "required": true}
+      "userId": {"type": "int", "required": true, "detail": ""},
+      "userName": {"type": "string", "required": false, "detail": ""},
+      "mobile": {"type": "string", "required": true, "detail": ""}
     }
   },
   "response": {
-    "success": {"type": "bool"},
-    "code": {"type": "int"},
-    "message": {"type": "string"},
+    "success": {"type": "bool", "detail": ""},
+    "code": {"type": "int", "detail": ""},
+    "message": {"type": "string", "detail": ""},
     "data": {
-        "orderId": {"type": "int"},
-        "orderNumber": {"type": "string"}
+        "orderId": {"type": "int", "detail": ""},
+        "orderNumber": {"type": "string", "detail": ""}
     }
   },
   "description": "根据提供的送货地址、货物和用户信息创建一个新的订单。返回操作与订单信息。"

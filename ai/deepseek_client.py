@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
-from typing import Dict, Any
 from openai import OpenAI
 from config.ai_config import AIConfig
 
@@ -60,7 +59,7 @@ class DeepSeekClient:
             logger.error(f"调用DeepSeek API失败: {e}")
             raise
 
-    def parse_interface(self, doc_content: str, service_name: str) -> Dict[str, Any]:
+    def parse_interface(self, doc_content: str, service_name: str):
         """
         解析接口文档
 
@@ -87,13 +86,14 @@ class DeepSeekClient:
             logger.debug(f"原始响应: {response}")
             raise
 
-    def generate_testcase(self, interface_info: Dict[str, Any], scenario: str = "正常流程") -> Dict[str, Any]:
+    def generate_testcase(self, interface_info: dict, service_name="", interface_name=""):
         """
         生成测试用例
 
         Args:
             interface_info: 接口信息
-            scenario: 测试场景
+            service_name: 服务名称
+            interface_name: 接口名称
 
         Returns:
             生成的测试用例
@@ -102,7 +102,8 @@ class DeepSeekClient:
 
         prompt = TESTCASE_GENERATE_TEMPLATE.format(
             interface_info=json.dumps(interface_info, ensure_ascii=False, indent=2),
-            scenario=scenario
+            service_name=service_name,
+            interface_name=interface_name
         )
 
         response = self.chat_completion(prompt)
