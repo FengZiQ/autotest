@@ -1,0 +1,111 @@
+项目结构如下：
+autotest/
+├── ai/ —> AI辅助测试目录
+│   └── deepseek_client.py —> DeepSeek API客户端
+│   └── interface_parser.py —> 接口文档解析器
+│   └── testcase_generator.py —> 测试用例生成器
+│   └── prompt_templates.py —> 结构化提示词
+├── config/ —> 配置目录
+│   └── android_config.py —> Android App测试设置
+│   └── windows_app_config.py —> Windows应用测试配置
+│   └── api_test_plan.py —> 接口测试计划
+│   └── android_test_plan.py —> Android App测试计划
+│   └── windows_test_plan.py —> Windows App测试计划
+├── core/ —> 测试工具库
+│   └── airtest_client.py —> airtest测试工具类
+│   └── airtest_executor.py —> airtest测试工具测试执行器
+│   └── api_test_client.py —> 接口测试工具类
+│   └── api_test_executor.py —> 接口测试执行器
+│   └── android_client.py —> Android App测试工具类
+│   └── android_test_executor.py —> Android App测试执行器
+├── platform/ —> 测试平台——flask框架
+│   ├── mock/  —>mock server包
+│       └── order_service.py —> order相关接口实现
+│       └── user_service.py —> user相关接口实现
+│   ├── services/  —>自动化测试平台后端逻辑实现包
+│       └── platform.py —> 自动化测试平台后端实现逻辑
+│   ├── static/  —> 测试平台静态文件css与js存放目录
+│   ├── templates/  —> 测试平台html页面存放目录
+│   ├── routes.py/  —> 测试平台路由文件
+│   └── app.py —> 测试平台启动入口
+├── reports/ —> 报告日志目录
+│   ├── logs/  —>日志目录
+│   ├── screenshots/  —>测试失败后截图目录
+├── resources/ —> 资源库
+│   ├── image/ —> 图片资源目录
+│   │    ├── android_app/ —> android app按钮截图及断言截图目录
+│   │    ├── windows_app/ —> windows app按钮截图及断言截图目录
+├── tests/ —> 测试入口
+│   ├── Android/  —>Android App测试入口
+│       └── conftest.py —> Android App测试相关的夹具配置
+│       └── test_entrance.py —> Android App测试入口
+│   ├── API/  —>API测试入口
+│       └── conftest.py —> API测试相关的夹具配置
+│       └── test_api_entrance.py —> API测试入口
+│   ├── Windows/  —>Windows App测试入口
+│       └── conftest.py —> Windows App测试相关的夹具配置
+│       └── test_windows_app_entrance.py —> Windows App测试入口
+├── tests_data/ —> 测试用例集数据
+├── utils/ —> 工具函数
+│   └── file_utils.py
+│   └── kill_process.py
+│   └── logger.py
+│   └── path_util.py
+└── conftest.py
+└── Dockerfile —> 项目容器
+└── docker-compose.yml —> 项目容器配置
+└── pytest.ini
+└── requirements.txt
+
+请重新实现测试平台，使用platform2文件夹存放测试平台项目所有文件。
+
+业务流程描述如下：
+测试产品为tests目录下的一级目录，当前产品有Android App、API接口、Windows App。
+每个项目测试入口文件test_*entrance.py中的TestExecute类的子方法为一个完整的测试计划。
+以API接口项目为例发起测试，即在命令行或者测试平台执行pytest test_api_entrance.py::TestExecute::test_execute_plan_smoke后，
+会通过pytest参数化装饰器parametrize执行测试计划test_execute_plan_smoke，遍历执行每一条关联的测试用例，调用api_test_executor.py接口测试执行器测试，最终输出测试结果。
+
+技术方案如下：
+一、使用flask框架。
+二、数据库使用mysql。
+三、js、css与html文件名对应分别保存在platform2/static/js、platform2/static/css、platform2/templates下。
+四、务必做到项目结构清晰，可维护性良好。
+
+功能模块如下：
+一、用户管理页面
+    1）默认生成一条管理员账户，数据库表中需要记录用户的新增及修改时间。
+    2）新增、修改；字段：用户名、密码、邮箱、身份（管理员/测试人员/研发人员）。
+    3）禁用、启用；禁用的用户不能登录测试平台。
+    4）删除；物理删除用户数据。
+
+二、项目配置页（管理员权限）
+    1）新增、修改；字段：项目类型（手机应用/API接口/Windows应用）、项目名称。
+    2）禁用、启用。
+    3）数据库表中需要记录新增及修改时间。
+
+三、测试计划管理页面（管理员/测试人员权限）
+    1）新增、修改；字段：项目名称（单选框，值为状态启用的项目）、测试计划名称
+    2）禁用、启用。
+    3）数据库表中需要记录新增与修改时间及人员信息。
+
+四、接口管理页面（管理员/测试人员权限）
+    1）新增、修改；字段：项目名称（单选框，值为项目类型为API接口且状态启用的项目）、接口名称（同一个项目中接口名称唯一）、接口信息（JSON格式）。
+    2）删除；物理删除接口数据。
+    3）数据库表中需要记录新增与修改时间及人员信息。
+
+五、测试用例管理页面（管理员/测试人员权限）
+    1）新增；字段：项目名称（单选框，值为态启用的项目）、接口名（当所选项目类型为API接口时有此字段）、用例名称、用例内容（JSON格式）。
+    2）查看、修改；字段：项目名称（下拉选择项目）、用例名称（选择测试用例名称后显示测试用例内容，测试用例名称及内容可编辑提交）。
+    3）删除；物理删除测试用例数据。
+    4）数据库表中需要记录新增与修改时间及人员信息。
+
+六、测试执行配置页（管理员权限）
+    1）新增、修改；字段：项目名称（单选框，值为态启用的项目），测试计划（单选框，值为被选项目关联且状态启用的测试计划）、测试用例（复选框，值为被选项目关联的测试用例）、人员（多选框，状态启用的测试及研发人员）、测试计划执行命令。
+    2）删除；物理删除测试执行配置数据。
+    3）数据库表中需要记录新增及修改时间。
+
+七、测试执行页面（不限权限）
+    1）根据登录人员配置的测试执行数据，下拉选择测试项目、测试计划；点击执行，执行对应测试计划命令。
+    2）实时显示执行日志。
+
+八、测试报告查看页（不限权限）

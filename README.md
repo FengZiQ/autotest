@@ -1,5 +1,10 @@
 # 项目目录
 autotest/  
+├── ai/ —> AI辅助测试目录  
+│   └── deepseek_client.py —> DeepSeek API客户端  
+│   └── interface_parser.py —> 接口文档解析器  
+│   └── testcase_generator.py —> 测试用例生成器  
+│   └── prompt_templates.py —> 结构化提示词  
 ├── config/ —> 配置目录  
 │   └── android_config.py —> Android App测试设置  
 │   └── windows_app_config.py —> Windows应用测试配置  
@@ -66,6 +71,8 @@ autotest/
 
 ## 2、API接口测试工具使用相关
 ### 1）[测试用例编写](https://github.com/FengZiQ/autotest/blob/main/docs/tests_data_for_API.json)
+### 2）不同服务在API/conftest.py新增一个session级的夹具配置，在API目录下新增一个测试入口文件
+### 3）测试入口文件中类的每个子方法为一个测试计划
 
 ## 3、airtest测试工具使用相关
 ### 1）[测试用例编写](https://github.com/FengZiQ/autotest/blob/main/docs/tests_data_for_Windows.json)
